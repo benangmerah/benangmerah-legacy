@@ -1,0 +1,70 @@
+    {{!-- Leaflet --}}
+    <div id="map-canvas"></div>
+    <script>
+    $(function() {
+      var map = L.map('map-canvas').setView([-2.2, 117], 5);
+      L.tileLayer('http://a.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      $.getJSON( '/api/points.json', function(response) {
+        $.each(response, function(i, obj) {
+          var marker = L.marker([obj.lat, obj.lon]).addTo(map);
+          marker.bindPopup(obj.title);
+        });
+      });
+    })
+    </script>
+
+    {{!--
+    <div id="map-canvas"></div>
+    <script src="http://ecn.dev.virtualearth.net/mapcontrol/mapcontrol.ashx?v=7.0&amp;mkt=id"></script>
+    <script src="/js/jquery.ui.bmap.min.js"></script>
+    <script>
+    $(function() {
+      // fillHeight = function(e) {
+      //   $('#map-canvas').height($(window).height() - $('.site-header').outerHeight());
+      // }
+      // $(window).resize(fillHeight);
+      // $(fillHeight);
+
+      // var map = new Microsoft.Maps.Map(
+      //   document.getElementById("map-canvas"),
+      //   {
+      //     credentials: "Au9D99UFDCw0fDQQvtRBj0UMZHEma7qORBGt69pRnQ_Bwq5EN9i4HhvCQbn8ohJf",
+      //     showDashboard: false,
+      //     enableSearchLogo: false,
+      //     enableClickableLogo: false,
+      //     showScalebar: true,
+      //     mapTypeId: Microsoft.Maps.MapTypeId.road,
+      //     center: new Microsoft.Maps.Location(-2.5, 120),
+      //     zoom: 4
+      //   }
+      // );
+
+      $('#map-canvas').gmap({
+        credentials: 'Au9D99UFDCw0fDQQvtRBj0UMZHEma7qORBGt69pRnQ_Bwq5EN9i4HhvCQbn8ohJf',
+        showDashboard: true,
+        enableSearchLogo: true,
+        enableClickableLogo: true,
+        showScalebar: true,
+        mapTypeId: Microsoft.Maps.MapTypeId.road,
+        center: new Microsoft.Maps.Location(-2.4, 120),
+        zoom: 4.5
+      })
+      .bind('init', function() {
+        $.getJSON( '/api/points.json', function(response) {
+          $.each(response, function(i, obj) {
+            var location = new Microsoft.Maps.Location(obj.lat, obj.lon);
+            $('#map-canvas').gmap('addMarker', { 'location': location, 'bounds': true } )
+            .click(function() {
+              $('#map-canvas').gmap('openInfoWindow', { 
+                'title': this.target.title
+              }, this);
+            });
+          });
+        });
+      });
+    })
+    </script>
+    --}}

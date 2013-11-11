@@ -7,4 +7,6 @@ var controllers = require('require-all')({
 module.exports = function(app) {
   app.get('/', controllers.home.index);
   app.get('/worldbank/index', controllers.worldbank.index);
+  app.get('/api/points.json', controllers.api.points);
+  app.get('/map', controllers.map)
 }

@@ -4,6 +4,9 @@
 // 1. Keep it simple
 // 2. Keep it semantic (using LESS)
 
+// Fonts
+@import url(http://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic);
+
 // Import bootstrap
 @import "bootstrap.less";
 
@@ -37,18 +40,25 @@ p {
   padding: 30px 0;
   border-bottom: 1px solid @gray-lighter;
   background: #fff;
-}
-.site-header h1 {
-  .container-responsive();
-  margin-top: 0;
-  margin-bottom: 0;
-  font-family: Roboto;
-  font-weight: 500;
-  font-size: 30px;
-  .narrow-kerning();
 
-  span {
-    color: @brand-primary;
+  h1 {
+    .container-responsive();
+    margin-top: 0;
+    margin-bottom: 0;
+    font-family: Roboto;
+    font-weight: 500;
+    font-size: 30px;
+    .narrow-kerning();
+
+    span {
+      color: @brand-primary;
+    }
+
+    i {
+      font-weight: 300;
+      color: @gray-light;
+      font-size: @font-size-large;
+    }
   }
 }
 
@@ -159,5 +169,27 @@ body > .content {
 
 #map-canvas {
   position: relative;
-  height: 400px;
+  height: 500px;
+
+  .MicrosoftMap .OverlaysTL {
+    border-bottom: none;
+    top: 5px;
+    left: 5px;
+
+    .NavBar_modeSelectorControlContainer,
+    .NavBar_zoomControlContainer,
+    .NavBar_compassControlContainer {
+      background: rgba(255, 255, 255, 0.7);
+      font-family: @font-family-accent;
+    }
+
+    .NavBar_compassControlContainer {
+      border-top-left-radius: 3px;
+      border-bottom-left-radius: 3px;
+    }
+    .NavBar_modeSelectorControlContainer {
+      border-top-right-radius: 3px;
+      border-bottom-right-radius: 3px;
+    }
+  }
 }
