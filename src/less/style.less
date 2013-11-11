@@ -170,26 +170,17 @@ body > .content {
 #map-canvas {
   position: relative;
   height: 500px;
+}
 
-  .MicrosoftMap .OverlaysTL {
-    border-bottom: none;
-    top: 5px;
-    left: 5px;
+.content.map {
+  padding-top: 0;
 
-    .NavBar_modeSelectorControlContainer,
-    .NavBar_zoomControlContainer,
-    .NavBar_compassControlContainer {
-      background: rgba(255, 255, 255, 0.7);
-      font-family: @font-family-accent;
-    }
-
-    .NavBar_compassControlContainer {
-      border-top-left-radius: 3px;
-      border-bottom-left-radius: 3px;
-    }
-    .NavBar_modeSelectorControlContainer {
-      border-top-right-radius: 3px;
-      border-bottom-right-radius: 3px;
-    }
+  #map-canvas {
+    position: absolute;
+    left: 0;
+    width: 100%;
   }
+}
+.content.map + .site-footer {
+  display: none;
 }

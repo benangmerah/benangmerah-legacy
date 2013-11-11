@@ -10,7 +10,7 @@
       $.getJSON( '/api/points.json', function(response) {
         $.each(response, function(i, obj) {
           var marker = L.marker([obj.lat, obj.lon]).addTo(map);
-          marker.bindPopup(obj.title);
+          marker.bindPopup('<a href="/activity/' + obj.ref + '">' + obj.title + '</a>');
         });
       });
     })

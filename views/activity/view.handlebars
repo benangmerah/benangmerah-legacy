@@ -1,0 +1,70 @@
+<div class="content activity">
+
+  {{#if error}}
+  <div class="alert alert-warning"><strong>An error occurred.</strong> {{ error }}</div>
+  {{/if}}
+
+  {{#with activity}}
+  <article class="activity">
+    <header>
+      <h3>{{title}}{{!--  (<kbd>{{iatiId}}</kbd>) --}}</h3>
+    </header>
+
+    <div class="row">
+      <div class="col-lg-6 col-md-8 description">
+        <h5>Description</h5>
+        {{{markdown description}}}
+      </div>
+      <div class="col-lg-6 col-md-4">
+        <div class="row">
+          <div class="col-lg-6 col-md-12 details">
+            <h5>Locations</h5>
+            <ul>
+            {{#each locations}}
+              <li><a href="{{map coordinates.latitude coordinates.longitude}}">{{name}}</a></li>
+            {{else}}
+              <li class="none">None.</li>
+            {{/each}}
+            </ul>
+
+            <h5>Documents</h5>
+            <ul>
+            {{#each documentLinks}}
+              <li><a href="{{url}}">{{title}}</a>{{#each categoryCodes}} <span class="label label-default" title="{{this}}">{{code 'DocumentCategory' this}}</span>{{/each}}</li>
+            {{else}}
+              <li class="none">None.</li>
+            {{/each}}
+            </ul>
+
+            <h5>Related Activities</h5>
+            <ul>
+            {{#each relatedActivities}}
+              <li><a href="/activity/{{ref}}">{{title}}</a></li>
+            {{/each}}
+            </ul>
+          </div>
+          <div class="col-lg-6 col-md-12 details">
+            <h5>Reporting Organizations</h5>
+            <ul>
+            {{#each reportingOrgs}}
+              <li><a href="/org/{{ref}}">{{name}}</a>{{#if role}} <span class="label label-default">{{role}}</span>{{/if}}</li>
+            {{else}}
+              <li class="none">None.</li>
+            {{/each}}
+            </ul>
+
+            <h5>Participating Organizations</h5>
+            <ul>
+            {{#each participatingOrgs}}
+              <li><a href="/org/{{ref}}">{{name}}</a>{{#if role}} <span class="label label-default">{{role}}</span>{{/if}}</li>
+            {{else}}
+              <li class="none">None.</li>
+            {{/each}}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+  {{/with}}
+</div>

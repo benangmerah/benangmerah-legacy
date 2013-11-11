@@ -1,0 +1,10 @@
+<div class="content map">
+	{{>map}}
+<script>
+  fillHeight = function(e) {
+    $('#map-canvas').height($(window).height() - $('.site-header').outerHeight());
+  }
+  $(window).resize(fillHeight);
+  $(fillHeight);
+</script>
+</div>
