@@ -42,12 +42,13 @@ if ('development' == app.get('env')) {
 // routes
 require('./routes')(app);
 
-// mongoose
-mongoose.connect(config.db);
-var db = mongoose.connection;
+// db is enabled
+if (config.db) {
+  // mongoose
+  mongoose.connect(config.db);
+  var db = mongoose.connection;
 
-// start listening
-if (!config.skipdb) {
+  // start listening
   db.on('error', console.error.bind(console, 'Connection error:'));
   db.once('open', function() {
     app.listen(config.port, function() {
