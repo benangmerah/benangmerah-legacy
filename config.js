@@ -5,7 +5,8 @@ config = module.exports = {
     port: 3000
   },
   production: {
-    db: process.env.CUSTOMCONNSTR_aidglasses,
+    db: process.env.CUSTOMCONNSTR_benangmerah,
+    skipdb: true,
     port: process.env.PORT || 80
   }
 }
