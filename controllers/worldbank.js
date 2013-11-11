@@ -30,8 +30,10 @@ var parseWorldBankProject = exports.parseWorldBankProject = function(worldBankPr
     worldBankProject.locations.forEach(function(loc) {
       act.locations.push({
         name: loc.geoLocName,
-        latitude: loc.latitude,
-        longitude: loc.longitude
+        coordinates: {
+          latitude: loc.latitude,
+          longitude: loc.longitude
+        }
       });
     });
 
