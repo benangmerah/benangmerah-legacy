@@ -6,4 +6,5 @@ var controllers = require('require-all')({
 
 module.exports = function(app) {
   app.get('/', controllers.home.index);
+  app.get('/worldbank/index', controllers.worldbank.index);
 }
