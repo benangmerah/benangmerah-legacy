@@ -1,0 +1,98 @@
+    <div class="content home">
+      <section class="positioning">
+        <p>BenangMerah adalah alat untuk <em>melacak</em> dan <em>memetakan</em> kegiatan <em>pembangunan sosial</em> di Indonesia.</p>
+      </section>
+
+      <section class="intro">
+        <section class="background">
+          <header>
+            <h4>Pembangunan adalah tanggung jawab <span>bersama</span>.</h4>
+          </header>
+          <p>Sebagai negara berkembang, pembangunan sosial di Indonesia masih tertinggal. Banyak kalangan, dari lembaga internasional hingga himpunan mahasiswa, berusaha berkontribusi terhadap pembangunan sosial melalui berbagai macam kegiatan di bidang dan tempat masing-masing.</p>
+          <p>BenangMerah bertujuan untuk melacak dan memetakan upaya-upaya tersebut, dengan harapan setiap pihak yang terlibat dapat berkontribusi terhadap pembangunan dengan lebih efektif.</p>
+        </section>
+        <section class="how-it-works">
+          <header>
+            <h4>Bagaimana cara kerja BenangMerah?</h4>
+          </header>
+
+          <!-- Insert illustration here -->
+          <p>BenangMerah menghimpun data mengenai <span>kegiatan/projek pembangunan sosial</span> serta <span>demografi penduduk dan faktor-faktor pembangunan</span> dari berbagai sumber ke dalam sebuah basis data, kemudian menampilkannya dalam bentuk <span>peta</span>, <span>indeks</span>, dan <span>API terbuka</span>.</p>
+        </section>
+      </section>
+
+      <section class="information-overview">
+        <header>
+          <h1>Melacak <span>0 kegiatan</span> oleh <span>0 organisasi</span> dari <span>0 sumber data</span>.</h1>
+        </header>
+        <section class="map">
+          <div id="map-canvas"></div>
+        </section>
+        <section class="objects">
+          <section class="projects">
+            <header>
+              <h4>Kegiatan terbaru</h4>
+            </header>
+          </section>
+          <section class="organizations">
+            <header>
+              <h4>Organisasi terbesar</h4>
+            </header>
+          </section>
+          <section class="datasets">
+            <header>
+              <h4>Sumber data terbesar</h4>
+            </header>
+          </section>
+        </section>
+      </section>
+
+      <section class="contributing">
+        <header>
+          <h3>Berkontribusi</h3>
+        </header>
+        <section class="options">
+          <section>
+            <h5>Bagi lembaga pengelola dana</h5>
+            <p>Dukung kami dengan berbagi data portfolio Anda. Kami mendukung IATI, standar internasional untuk data aliran bantuan pembangunan.</p>
+          </section>
+          <section>
+            <h5>Bagi organisasi/jaringan pemuda</h5>
+            <p>Dukung kami dengan berbagi data projek sosial yang dilaksanakan oleh anggota Anda.</p>
+          </section>
+          <section>
+            <h5>Bagi pelaksana kegiatan</h5>
+            <p>Dukung kami dengan mendaftarkan kegiatan/projek Anda.</p>
+          </section>
+          <section>
+            <h5>Bagi pengembang</h5>
+            <p>BenangMerah adalah perangkat lunak sumber-terbuka. <a href="http://github.com/benangmerah/benangmerah">Fork me on GitHub.</a></p>
+          </section>
+        </section>
+      </section>
+    </div>
+
+    <script src="http://ecn.dev.virtualearth.net/mapcontrol/mapcontrol.ashx?v=7.0&amp;mkt=id"></script>
+    <script>
+    $(function() {
+      // fillHeight = function(e) {
+      //   $('#map-canvas').height($(window).height() - $('.site-header').outerHeight());
+      // }
+      // $(window).resize(fillHeight);
+      // $(fillHeight);
+
+      var map = new Microsoft.Maps.Map(
+        document.getElementById("map-canvas"),
+        {
+          credentials: "Au9D99UFDCw0fDQQvtRBj0UMZHEma7qORBGt69pRnQ_Bwq5EN9i4HhvCQbn8ohJf",
+          showDashboard: false,
+          enableSearchLogo: false,
+          enableClickableLogo: false,
+          showScalebar: true,
+          mapTypeId: Microsoft.Maps.MapTypeId.road,
+          center: new Microsoft.Maps.Location(-2.5, 120),
+          zoom: 4
+        }
+      );
+    })
+    </script>

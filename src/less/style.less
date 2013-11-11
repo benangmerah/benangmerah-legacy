@@ -1,0 +1,158 @@
+// BenangMerah
+// Master stylesheet
+// Goals:
+// 1. Keep it simple
+// 2. Keep it semantic (using LESS)
+
+// Import bootstrap
+@import "bootstrap.less";
+
+// Custom mixins
+.container-responsive() {
+  .container-fixed();
+	@media (min-width: @screen-sm-min) {
+    width: @container-sm;
+	}
+	@media (min-width: @screen-md-min) {
+    width: @container-md;
+	}
+	@media (min-width: @screen-lg-min) {
+    width: @container-lg;
+	}
+}
+.narrow-kerning {
+  letter-spacing: -0.04em;
+}
+
+// Non-bootstrap styles
+// @import url(http://fonts.googleapis.com/css?family=Roboto:500,500italic);
+
+body {
+  // background: #f9f9f9;
+}
+p {
+  font-weight: 300;
+}
+.site-header {
+  padding: 30px 0;
+  border-bottom: 1px solid @gray-lighter;
+  background: #fff;
+}
+.site-header h1 {
+  .container-responsive();
+  margin-top: 0;
+  margin-bottom: 0;
+  font-family: Roboto;
+  font-weight: 500;
+  font-size: 30px;
+  .narrow-kerning();
+
+  span {
+    color: @brand-primary;
+  }
+}
+
+body > .content {
+  .container-responsive();
+  border-top: 1px solid @bright-red;
+  margin-top: -1px;
+  padding-top: 30px;
+}
+
+.site-footer {
+  .container-responsive();
+  padding-bottom: 30px;
+  font-size: @font-size-small;
+  border-top: 1px solid @gray-lighter;
+  padding-top: 30px;
+  margin-top: 30px;
+
+  p {
+    font-weight: normal;
+  }
+  .copyright {
+    color: @gray;
+  }
+  .open-source {
+    color: @gray-light;
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+    }
+  }
+}
+
+.content.home {
+  .positioning {
+    font-family: @font-family-accent;
+    font-weight: 300;
+    font-size: 44px;
+    line-height: 1.15;
+    padding: 45px 15px;
+    margin: -30px -15px 30px;
+    border-bottom: 1px solid @gray-lighter;
+    .narrow-kerning();
+    color: @gray-light;
+  }
+  .positioning em {
+    font-weight: 500;
+    font-style: normal;
+    color: @gray-darker;
+  }
+  .intro {
+    .make-row();
+    margin: 0 -15px 30px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid @gray-lighter;
+
+    .background {
+      .make-md-column(6);
+    }
+    .how-it-works {
+      .make-md-column(6);
+    }
+  }
+  .information-overview {
+    margin: -30px -15px 30px;
+    padding: 30px 15px;
+    border-bottom: 1px solid @gray-lighter;
+
+    header h1 {
+      margin: 0 0 30px;
+      font-weight: 300;
+      font-size: @font-size-h2;
+      .narrow-kerning();
+      color: @gray-light;
+
+      span {
+        color: @gray-darker;
+        font-weight: 500;
+      }
+    }
+
+    .objects {
+      .make-row();
+      padding-top: 30px;
+
+      section {
+        .make-md-column(4);
+      }
+    }
+  }
+
+  .contributing {
+    .options {
+      .make-row();
+
+      section {
+        .make-md-column(3);
+      }
+    }
+  }
+}
+
+#map-canvas {
+  position: relative;
+  height: 400px;
+}
