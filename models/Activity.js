@@ -58,7 +58,7 @@ relatedActivitySchema = new Schema({
 });
 
 var activitySchema = new Schema({
-  _id: String, // A unique URI-like identifier for the activity.
+  _id: String, // A unique URI or pseudo-URI to identify the activity
   dataset: String, // The name of the dataset this activity belongs to
   providerRef: String, // An identifier for the activity, as assigned by the project owner
   title: String, // Title/name of the project
