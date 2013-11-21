@@ -11,6 +11,7 @@
     "async": "*",
     "mongoose": "*",
     "require-all": "*",
-    "less-middleware": "*"
+    "less-middleware": "*",
+    "request": "2.x"
   }
 }
