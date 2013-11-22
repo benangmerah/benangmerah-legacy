@@ -3,13 +3,11 @@ var express = require('express'),
     lessMiddleware = require('less-middleware'),
     mongoose = require('mongoose'),
     path = require('path'),
+    config = require('./config'),
     loadRoutes = require('./routes');
 
 // express: init
 var app = express();
-
-// app config
-var config = require('./config')[app.get('env') || 'development'];
 
 // express: settings
 app.set('port', config.port);
