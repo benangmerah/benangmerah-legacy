@@ -40,8 +40,20 @@ function parseWorldBankProject(worldBankProject) {
       });
     });
 
+  // documents
+  if (worldBankProject.projectdocs) {
+    worldBankProject.projectdocs.forEach(function(doc) {
+      act.documentLinks.push({
+        title: doc.DocTypeDesc,
+        url: doc.DocURL
+      });
+    });
+  }
+
   // Permalink
   act.url = worldBankProject.url;
+
+  act.driver = 'world-bank-project';
 
   act._raw = worldBankProject;
 
