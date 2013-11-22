@@ -184,3 +184,71 @@ body > .content {
 .content.map + .site-footer {
   display: none;
 }
+
+.content.activity {
+  article.activity {
+    & > header {
+      padding: 45px 15px;
+      margin: -30px -15px 30px;
+      border-bottom: 1px solid @gray-lighter;
+
+      h1 {
+        .h4;
+        color: @gray-light;
+        margin: 0 0 5px 0;
+      }
+      h2 {
+        .h1;
+        color: #000;
+        margin: 0;
+        font-weight: 300;
+      }
+    }
+
+    .details-wrapper {
+      .make-row();
+
+      .description {
+        .make-md-column(8);
+        .make-lg-column(6);
+        font-size: @font-size-base * 1.2;
+
+        h5 {
+          display: none;
+        }
+      }
+
+      .details {
+        h5 {
+          margin-top: 0;
+        }
+        ul {
+          padding: 0;
+        }
+        li {
+          list-style: none;
+          font-weight: 300;
+        }
+
+        p {
+          text-align: center;
+        }
+
+        table {
+          margin-top: 30px;
+          font-size: @font-size-small;
+
+          th, td {
+            padding-left: 0;
+            padding-right: 0;
+            border-top: 1px solid @gray-lighter;
+          }
+
+          td {
+            text-align: right;
+          }
+        }
+      }
+    }
+  }
+}

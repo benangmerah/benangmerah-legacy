@@ -7,10 +7,11 @@
   {{#with activity}}
   <article class="activity">
     <header>
-      <h3>{{title}}{{!--  (<kbd>{{iatiId}}</kbd>) --}}</h3>
+      <h1>Rincian Kegiatan</h1>
+      <h2>{{title}}</h2>
     </header>
 
-    <div class="row">
+    <div class="details-wrapper">
       <div class="col-lg-6 col-md-8 description">
         <h5>Description</h5>
         {{{markdown description}}}
@@ -18,32 +19,75 @@
       <div class="col-lg-6 col-md-4">
         <div class="row">
           <div class="col-lg-6 col-md-12 details">
-            <h5>Locations</h5>
+            {{#if locations}}
+            <h5>Lokasi</h5>
             <ul>
             {{#each locations}}
               <li><a href="{{map coordinates.latitude coordinates.longitude}}">{{name}}</a></li>
-            {{else}}
-              <li class="none">None.</li>
             {{/each}}
             </ul>
+            {{/if}}
 
-            <h5>Documents</h5>
+            {{#if documentLinks}}
+            <h5>Dokumen Terkait</h5>
             <ul>
             {{#each documentLinks}}
               <li><a href="{{url}}">{{title}}</a>{{#each categoryCodes}} <span class="label label-default" title="{{this}}">{{code 'DocumentCategory' this}}</span>{{/each}}</li>
-            {{else}}
-              <li class="none">None.</li>
             {{/each}}
             </ul>
+            {{/if}}
 
+            {{#if relatedActivities}}
             <h5>Related Activities</h5>
             <ul>
             {{#each relatedActivities}}
               <li><a href="/activity/{{ref}}">{{title}}</a></li>
             {{/each}}
             </ul>
+            {{/if}}
           </div>
           <div class="col-lg-6 col-md-12 details">
+            {{!-- Make this driver-specific area --}}
+
+            {{#if_eq driver 'world-bank-project'}}
+            <p><img src="/img/logos/wb_logo.gif" alt=""></p>
+
+            {{#with _raw}}
+            <table class="table">
+              <tr>
+                <th>ID Proyek</th>
+                <td>{{id}}</td>
+              </tr>
+              <tr>
+                <th>Status</th>
+                <td>{{status}}</td>
+              </tr>
+              <tr>
+                <th>Tanggal disetujui</th>
+                <td>{{date boardapprovaldate 'D MMMM YYYY'}}</td>
+              </tr>
+              <tr>
+                <th>Tanggal tutup</th>
+                <td>{{date closingdate 'D MMMM YYYY'}}</td>
+              </tr>
+              <tr>
+                <th>Biaya total</th>
+                <td>US$&thinsp;{{lendprojectcost}}</td>
+              </tr>
+              <tr>
+                <th>Besar komitmen</th>
+                <td>US$&thinsp;{{totalamt}}</td>
+              </tr>
+              <tr>
+                <th>Besar hibah</th>
+                <td>US$&thinsp;{{grantamt}}</td>
+              </tr>
+            </table>
+            {{/with}}
+
+            {{/if_eq}}
+
+            {{!-- 
             <h5>Reporting Organizations</h5>
             <ul>
             {{#each reportingOrgs}}
@@ -61,10 +105,11 @@
               <li class="none">None.</li>
             {{/each}}
             </ul>
+            --}}
           </div>
         </div>
       </div>
-    </div>
+    <detailsv>
   </article>
   {{/with}}
 </div>
