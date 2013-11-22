@@ -12,6 +12,7 @@
     "mongoose": "*",
     "require-all": "*",
     "less-middleware": "*",
-    "request": "2.x"
+    "request": "2.x",
+    "moment": "*"
   }
 }
