@@ -63,7 +63,7 @@ relatedActivitySchema = new Schema({
 
 var activitySchema = new Schema({
   _id: String, // A unique URI or pseudo-URI to identify the activity
-  dataset: String, // The name of the dataset this activity belongs to
+  driver: String, // The name of the driver this activity comes from
   providerRef: String, // An identifier for the activity, as assigned by the project owner
   title: String, // Title/name of the project
   description: String, // Description of the project
@@ -79,7 +79,7 @@ var activitySchema = new Schema({
 
 activitySchema.virtual('_raw')
 .get(function() {
-  return JSON.parse(_rawJSON);
+  return JSON.parse(this._rawJSON);
 })
 .set(function(v) {
   this._rawJSON = JSON.stringify(v);
