@@ -24,6 +24,10 @@ var locationSchema = new Schema({
     precision: Number
   },
   administrative: {
+    province: String,
+    kabupaten: String,
+    kecamatan: String,
+    desa: String,
     country: String,
     adm1: String,
     adm2: String,
