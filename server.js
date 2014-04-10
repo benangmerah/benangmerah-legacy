@@ -1,10 +1,19 @@
-var express = require('express'),
-    exphbs  = require('express3-handlebars'),
-    lessMiddleware = require('less-middleware'),
-    mongoose = require('mongoose'),
-    path = require('path'),
-    config = require('./config'),
-    loadRoutes = require('./routes');
+var express = require('express');
+var mongoose = require('mongoose');
+var path = require('path');
+
+// express middleware
+var exphbs  = require('express3-handlebars');
+var lessMiddleware = require('less-middleware');
+var favicon = require('static-favicon');
+var logger = require('morgan');
+var bodyParser = require('body-parser');
+var methodOverride = require('method-override');
+var serveStatic = require('serve-static');
+var errorHandler = require('errorhandler');
+
+var config = require('./config');
+var router = require('./router');
 
 // express: init
 var app = express();
@@ -17,28 +26,28 @@ app.set('views', __dirname + '/views');
 app.engine('handlebars', exphbs({defaultLayout: 'main', helpers: require('./views/helpers')}));
 app.set('view engine', 'handlebars');
 
-// express: middleware
-app.use(express.favicon());
-app.use(express.logger('dev'));
-app.use(express.bodyParser());
-app.use(express.methodOverride());
-app.use(app.router);
-app.use(lessMiddleware({
-    dest: path.join(__dirname, 'public/css'),
-    src: path.join(__dirname, 'src/less'),
-    prefix: '/css',
-    compress: !('development' == app.get('env')),
-    force: ('development' == app.get('env'))
-}));
-app.use(express.static(path.join(__dirname, 'public')));
+// express: middleware before routing
+app.use(favicon());
+app.use(logger('dev'));
+app.use(bodyParser());
+app.use(methodOverride());
+app.use(lessMiddleware(
+  'src/less',
+  { dest: 'public/css', force: ('development' == app.get('env')) },
+  {},
+  { compress: !('development' == app.get('env')) }
+));
+
+// app router
+app.use(router);
+
+// express: middleware after routing
+app.use(serveStatic(path.join(__dirname, 'public')));
 
 // express: error handler
 if ('development' == app.get('env')) {
-  app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+  app.use(errorHandler({ dumpExceptions: true, showStack: true }));
 }
-
-// routes
-require('./routes')(app);
 
 // db is enabled
 if (config.db) {
