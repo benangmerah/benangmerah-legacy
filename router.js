@@ -21,6 +21,11 @@ router.get('/syahbandar/edit/:id', controllers.syahbandar.edit);
 router.post('/syahbandar/edit/:id', controllers.syahbandar.processEdit);
 router.post('/syahbandar/pull/:id', controllers.syahbandar.pull);
 router.get('/syahbandar', controllers.syahbandar.index);
+
+// Ontology dereferencing: for the moment, just redirect to ontology.ttl in the /wilayah repo
 router.use('/ontology', controllers.ontology.deref);
+
+// Places dereferencing: for the moment, just redirect to instances.ttl in the /wilayah repo
+router.use('/place', controllers.ontology.derefPlaces);
 
 module.exports = router;
