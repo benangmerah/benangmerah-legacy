@@ -21,5 +21,6 @@ router.get('/syahbandar/edit/:id', controllers.syahbandar.edit);
 router.post('/syahbandar/edit/:id', controllers.syahbandar.processEdit);
 router.post('/syahbandar/pull/:id', controllers.syahbandar.pull);
 router.get('/syahbandar', controllers.syahbandar.index);
+router.use('/ontology', controllers.ontology.deref);
 
 module.exports = router;
