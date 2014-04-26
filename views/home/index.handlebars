@@ -21,30 +21,23 @@
         </section>
       </section>
 
+      <section class="intro">
+        <section class="background">
+          <header>
+            <h4>Telusuri data berdasarkan provinsi.</h4>
+          </header>
+          <ul>
+            {{#each provinces}}
+            <li><a href="{{path}}">{{name}}</a></li>
+            {{/each}}
+          </ul>
+        </section>
+      </section>
+
       <section class="information-overview">
         <header>
           <h1>Melacak <span>{{activityCount}} kegiatan</span> dan <span>{{orgCount}} organisasi</span>.</h1>
         </header>
-        <section class="map">
-          {{>map}}
-        </section>
-{{!--         <section class="objects">
-          <section class="projects">
-            <header>
-              <h4>Kegiatan terbaru</h4>
-            </header>
-          </section>
-          <section class="organizations">
-            <header>
-              <h4>Organisasi terbesar</h4>
-            </header>
-          </section>
-          <section class="datasets">
-            <header>
-              <h4>Sumber data terbesar</h4>
-            </header>
-          </section>
-        </section> --}}
       </section>
 
       <section class="contributing">
