@@ -33,7 +33,9 @@ conn.query = function(options, callback) {
     options = { query: options }
   }
 
-  options = _.extend({ database: config.stardog.database }, options);
+  if (this.defaultDatabase) {
+    options = _.extend({ database: this.defaultDatabase }, options);
+  }
 
   if (options.reasoning) {
     var reasoningBefore = conn.getReasoning();
