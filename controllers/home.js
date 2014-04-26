@@ -1,6 +1,6 @@
 var url = require('url');
 var async = require('async');
-var conn = require('../starmutt');
+var conn = require('starmutt');
 
 exports.index = function(req, res, next) {
   function execQuery(callback) {

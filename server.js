@@ -4,6 +4,7 @@ var stardog = require('stardog');
 var path = require('path');
 var async = require('async');
 var config = require('config');
+var conn = require('starmutt');
 
 // express middleware
 var exphbs  = require('express3-handlebars');
@@ -16,7 +17,6 @@ var methodOverride = require('method-override');
 var serveStatic = require('serve-static');
 var errorHandler = require('errorhandler');
 
-var conn = require('./starmutt');
 var router = require('./router');
 
 // express: init
