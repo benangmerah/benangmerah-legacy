@@ -2,11 +2,10 @@
   "name": "benangmerah",
   "author": "Andhika Nugraha <andhika.nugraha@outlook.com>",
   "description": "A platform to track social development projects in Indonesia.",
-  "version": "0.1",
+  "version": "0.1.0",
   "private": true,
   "dependencies": {
     "express": "4.x",
-    "express3-handlebars": "*",
     "marked": "*",
     "async": "*",
     "mongoose": "*",
@@ -23,6 +22,7 @@
     "stardog": "^0.1.1",
     "config": "^0.4.35",
     "js-yaml": "^3.0.2",
-    "underscore": "^1.6.0"
+    "underscore": "^1.6.0",
+    "hbs": "^2.6.0"
   }
 }

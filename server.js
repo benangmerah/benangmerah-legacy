@@ -7,6 +7,7 @@ var config = require('config');
 
 // express middleware
 var exphbs  = require('express3-handlebars');
+var hbs = require('hbs');
 var lessMiddleware = require('less-middleware');
 var favicon = require('static-favicon');
 var logger = require('morgan');
@@ -26,8 +27,10 @@ module.exports = app;
 app.set('views', __dirname + '/views');
 
 // express: handlebars view engine
-app.engine('handlebars', exphbs({defaultLayout: 'main', helpers: require('./views/helpers')}));
-app.set('view engine', 'handlebars');
+hbs.registerPartials(__dirname + '/views/partials');
+app.engine('handlebars', hbs.__express);
+app.set('view engine', 'hbs');
+app.set('view options', { layout: 'layouts/main' })
 
 // express: middleware before routing
 app.use(favicon());
