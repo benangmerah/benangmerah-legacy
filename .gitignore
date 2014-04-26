@@ -17,3 +17,7 @@ node_modules
 *.sublime-workspace
 
 /public/css/style.css
+
+/config/runtime.json
+/config/development.yml
+/config/production.yml

@@ -1,6 +1,9 @@
 var express = require('express');
 var mongoose = require('mongoose');
+var stardog = require('stardog');
 var path = require('path');
+var async = require('async');
+var config = require('config');
 
 // express middleware
 var exphbs  = require('express3-handlebars');
@@ -12,14 +15,14 @@ var methodOverride = require('method-override');
 var serveStatic = require('serve-static');
 var errorHandler = require('errorhandler');
 
-var config = require('./config');
+var conn = require('./starmutt');
 var router = require('./router');
 
 // express: init
 var app = express();
+module.exports = app;
 
 // express: settings
-app.set('port', config.port);
 app.set('views', __dirname + '/views');
 
 // express: handlebars view engine
@@ -37,34 +40,48 @@ app.use(lessMiddleware(
   {},
   { compress: !('development' == app.get('env')) }
 ));
+app.use(serveStatic(path.join(__dirname, 'public')));
 
 // app router
 app.use(router);
-
-// express: middleware after routing
-app.use(serveStatic(path.join(__dirname, 'public')));
 
 // express: error handler
 if ('development' == app.get('env')) {
   app.use(errorHandler({ dumpExceptions: true, showStack: true }));
 }
 
-// db is enabled
-if (config.db) {
+function initMongoDb(callback) {
+  if (!config.mongodb) {
+    return callback();
+  }
+
   // mongoose
   mongoose.connect(config.db);
   var db = mongoose.connection;
 
   // start listening
-  db.on('error', console.error.bind(console, 'Connection error:'));
+  db.on('error', callback);
   db.once('open', function() {
-    app.listen(config.port, function() {
+    callback();
+  });
+}
+
+function initStardog(callback) {
+  if (!config.stardog) {
+    return callback();
+  }
+
+  conn.setEndpoint(config.stardog.endpoint);
+  conn.setCredentials(config.stardog.username, config.stardog.password);
+  conn.setDefaultDatabase(config.stardog.database);
+
+  callback();
+}
+
+async.parallel([initMongoDb, initStardog],
+  function listen(err, x) {
+    if (err) console.log(err);
+    app.listen(config.port || 3000, function() {
       console.log('BenangMerah running in ' + app.get('env') + ' mode on port ' + config.port + '.');
     });
   });
-}
-else {
-  app.listen(config.port, function() {
-    console.log('BenangMerah running in ' + app.get('env') + ' mode on port ' + config.port + '.');
-  });
-}

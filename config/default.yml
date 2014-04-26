@@ -1,0 +1,5 @@
+stardog:
+  endpoint: http://localhost:5820/
+  database: myDB
+  username: admin
+  password: admin
