@@ -1,8 +1,12 @@
+var express = require('express');
 var url = require('url');
 var async = require('async');
 var conn = require('starmutt');
 
-exports.index = function(req, res, next) {
+var router = express.Router();
+module.exports = router;
+
+function index(req, res, next) {
   function execQuery(callback) {
     var query = 'select distinct ?uri ?label \
       where { ?uri a bm:Provinsi. ?uri rdfs:label ?label }';
@@ -60,3 +64,5 @@ exports.index = function(req, res, next) {
 
   async.waterfall([execQuery, processResults], render);
 }
+
+router.all('/', index);

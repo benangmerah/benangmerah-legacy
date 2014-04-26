@@ -1,5 +1,4 @@
 var express = require('express');
-var mongoose = require('mongoose');
 var stardog = require('stardog');
 var path = require('path');
 var async = require('async');
@@ -17,7 +16,8 @@ var methodOverride = require('method-override');
 var serveStatic = require('serve-static');
 var errorHandler = require('errorhandler');
 
-var router = require('./router');
+var routes = require('./routes');
+var ontologyRouter = require('./routes/ontology');
 
 // express: init
 var app = express();
@@ -46,45 +46,20 @@ app.use(lessMiddleware(
 app.use(serveStatic(path.join(__dirname, 'public')));
 
 // app router
-app.use(router);
+app.use(routes);
+app.use(ontologyRouter);
 
 // express: error handler
 if ('development' == app.get('env')) {
   app.use(errorHandler({ dumpExceptions: true, showStack: true }));
 }
 
-function initMongoDb(callback) {
-  if (!config.mongodb) {
-    return callback();
-  }
-
-  // mongoose
-  mongoose.connect(config.db);
-  var db = mongoose.connection;
-
-  // start listening
-  db.on('error', callback);
-  db.once('open', function() {
-    callback();
-  });
-}
-
-function initStardog(callback) {
-  if (!config.stardog) {
-    return callback();
-  }
-
+if (config.stardog) {
   conn.setEndpoint(config.stardog.endpoint);
   conn.setCredentials(config.stardog.username, config.stardog.password);
   conn.setDefaultDatabase(config.stardog.database);
-
-  callback();
 }
 
-async.parallel([initMongoDb, initStardog],
-  function listen(err, x) {
-    if (err) console.log(err);
-    app.listen(config.port || 3000, function() {
-      console.log('BenangMerah running in ' + app.get('env') + ' mode on port ' + config.port + '.');
-    });
-  });
+app.listen(config.port || 3000, function() {
+  console.log('BenangMerah running in ' + app.get('env') + ' mode on port ' + config.port + '.');
+});
