@@ -75,3 +75,15 @@ shared.getPreferredLabel = function(jsonLdResource) {
 
   return preferredLabel;
 }
+
+shared.getPropertyName = function(propertyName) {
+  var delimiters = [':', '#', '/'];
+
+  for (var i = 0; i < delimiters.length; ++i) {
+    var delimiter = delimiters[i];
+    var index = propertyName.lastIndexOf(delimiter);
+    if (index !== -1) {
+      return propertyName.substring(index + 1);
+    }
+  }
+}

@@ -32,7 +32,11 @@ helpers.descriptionLink = function(value) {
 
   var descriptionPath = shared.getDescriptionPath(uri);
 
-  return new Handlebars.SafeString('<a href="' + descriptionPath + '">' + uri + '</a>');
+  var label = shared.getPreferredLabel(value);
+  if (!label)
+    label = uri;
+
+  return new Handlebars.SafeString('<a href="' + descriptionPath + '">' + label + '</a>');
 }
 
 helpers.ldObject = function(ldObj) {
@@ -49,4 +53,21 @@ helpers.ldObject = function(ldObj) {
   else {
     return helpers.ldValue(ldObj);
   }
+}
+
+var deferredBlocks = [];
+
+helpers.defer = function(options) {
+  var deferredBlock = options.fn(this);
+  deferredBlocks.push(deferredBlock);
+  return '';
+}
+
+helpers.flush = function() {
+  var output = deferredBlocks.join('');
+
+  delete deferredBlocks;
+  deferredBlocks = [];
+
+  return new Handlebars.SafeString(output);
 }

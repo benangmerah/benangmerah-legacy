@@ -49,7 +49,7 @@ function ontologyRouter(req, res, next) {
       }
       else {
         cache.put('resolvedTypes:' + uri, resolvedTypes, lifetime);
-        callback(null, resolvedTypes);
+        return callback(null, resolvedTypes);
       }
     });
   }
@@ -76,7 +76,7 @@ function ontologyRouter(req, res, next) {
     });
 
     if (!found) {
-      next();
+      return next();
     }
   }
 
@@ -111,7 +111,56 @@ function describeKota(req, res, next) {
 }
 
 function describePlace(req, res, next) {
-  res.json('Hello place');
+  var vars = {};
+
+  function execDescribeQuery(callback) {
+    var describeQuery = util.format('describe <%s>', req.resourceURI);
+
+    conn.getGraph({
+      query: describeQuery,
+      form: 'compact',
+      context: shared.context
+    }, function(err, data) {
+      if (err) {
+        return callback(err);
+      }
+
+      vars.thisPlace = data;
+      return callback();
+    });
+  }
+
+  function getChildren(callback) {
+    var childrenQuery = util.format(
+      'describe ?child where { ?child bm:hasParent <%s> }',
+      req.resourceURI
+    );
+
+    conn.getGraph({
+      query: childrenQuery,
+      form: 'compact',
+      context: shared.context
+    }, function(err, data) {
+      if (err) {
+        return callback(err);
+      }
+
+      vars.children = data['@graph'];
+      return callback();
+    });
+  }
+
+  function render(err) {
+    if (err) {
+      return next(err);
+    }
+
+    res.render('ontology/place', _.extend(vars, {
+      title: shared.getPreferredLabel(vars.thisPlace)
+    }));
+  }
+
+  async.series([execDescribeQuery, getChildren], render);
 }
 
 function describeThing(req, res, next) {
@@ -148,22 +197,22 @@ function describeThing(req, res, next) {
 
 function sameAsFallback(req, res, next) {
   if (!req.resourceURI) {
-    next();
+    return next();
   }
 
   var query = util.format('select distinct ?twin \
     where { { ?twin owl:sameAs <%s> } \
     union { <%s> owl:sameAs ?twin } } limit 2', req.resourceURI);
 
-  conn.getColValues(query, function(err, col) {
+  return conn.getColValues(query, function(err, col) {
     if (err) {
       return next(err);
     }
     if (col.length === 1) {
-      res.redirect(shared.getDescriptionPath(col[0]));
+      return res.redirect(shared.getDescriptionPath(col[0]));
     }
     else {
-      next();
+      return next();
     }
   });
 }
@@ -173,8 +222,8 @@ router.use('/place', describeInternalResource);
 router.use('/resource/:resourceURI', describeExternalResource);
 router.use(ontologyRouter);
 
-ontologyRouter.route('http://www.w3.org/2002/07/owl#Thing', describeThing);
 ontologyRouter.route('http://benangmerah.net/ontology/Place', describePlace);
+ontologyRouter.route('http://www.w3.org/2002/07/owl#Thing', describeThing);
 ontologyRouter.route('http://benangmerah.net/ontology/Provinsi', describeProvinsi);
 ontologyRouter.route('http://benangmerah.net/ontology/Kota', describeKota);
 

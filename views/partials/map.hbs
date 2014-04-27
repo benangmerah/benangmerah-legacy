@@ -1,0 +1,23 @@
+{{#if geo:lat}}
+{{!-- Leaflet --}}
+<div id="map-canvas"></div>
+{{#defer}}
+<!--[if lte IE 8]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.ie.css" /><![endif]-->
+<script src="http://cdn.leafletjs.com/leaflet-0.7/leaflet.js"></script>
+
+{{!-- MarkerCluster --}}
+{{!-- <link rel="stylesheet" href="/vendor/leaflet.markercluster/MarkerCluster.css">
+<link rel="stylesheet" href="/vendor/leaflet.markercluster/MarkerCluster.Default.css">
+<script src="/vendor/leaflet.markercluster/leaflet.markercluster-src.js"></script> --}}
+<script>
+$(function() {
+  var map = L.map('map-canvas').setView([-2.2, 117], 5);
+  L.tileLayer('http://a.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  var marker = L.marker([{{geo:lat}}, {{geo:long}}]).addTo(map);
+})
+</script>
+{{/defer}}
+{{/if}}

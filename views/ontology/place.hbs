@@ -1,0 +1,42 @@
+<div class="content activity">
+	<article class="activity">
+		<header>
+			<h1>Rincian Wilayah</h1>
+			<h2>{{title}}</h2>
+		</header>
+
+		<div class="row">
+			<div class="col-lg-9 col-md-8">
+				{{#with thisPlace}}
+				<div class="on-map">
+					<h4>Letak geografis</h4>
+					{{>map}}
+				</div>
+				<div class="properties">
+					<h4>Tentang {{preferredLabel}}</h4>
+					<table class="table">
+						{{#each this}}
+						{{#contains @key '@'}}
+						<!-- -->
+						{{else}}
+						<tr>
+							<th>{{@key}}<th>
+							<td>{{ldObject this}}</td>
+						</tr>
+						{{/contains}}
+						{{/each}}
+					</table>
+				</div>
+				{{/with}}
+			</div>
+			<div class="col-lg-3 col-md-4">
+				<h4>Wilayah bagian {{preferredLabel thisPlace}}</h4>
+				<ul>
+				{{#each children}}
+					<li>{{ldObject this}}</li>
+				{{/each}}
+				</ul>
+			</div>
+		</div>
+	</article>
+</div>

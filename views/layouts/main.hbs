@@ -12,17 +12,10 @@
       <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
     <![endif]-->
 
-    {{#if maps}}
+    {{!-- {{#if maps}} --}}
     {{!-- Maps are deprecated for the moment --}}
     <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7/leaflet.css" />
-    <!--[if lte IE 8]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.ie.css" /><![endif]-->
-    <script src="http://cdn.leafletjs.com/leaflet-0.7/leaflet.js"></script>
-
-    {{!-- MarkerCluster --}}
-    <link rel="stylesheet" href="/vendor/leaflet.markercluster/MarkerCluster.css">
-    <link rel="stylesheet" href="/vendor/leaflet.markercluster/MarkerCluster.Default.css">
-    <script src="/vendor/leaflet.markercluster/leaflet.markercluster-src.js"></script>
-    {{/if}}
+    {{!-- {{/if}} --}}
   </head>
   <body>
     {{>site_header}}
@@ -35,5 +28,7 @@
     <script src="https://code.jquery.com/jquery.js"></script>
     {{!-- Include all compiled plugins (below), or include individual files as needed --}}
     <script src="/js/bootstrap.min.js"></script>
+
+    {{flush}}
   </body>
 </html>
