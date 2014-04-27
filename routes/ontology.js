@@ -110,6 +110,10 @@ function describeKota(req, res, next) {
   res.json('Hello kota');
 }
 
+function describePlace(req, res, next) {
+  res.json('Hello place');
+}
+
 function describeThing(req, res, next) {
   function execDescribeQuery(callback) {
     var describeQuery = util.format('describe <%s>', req.resourceURI);
