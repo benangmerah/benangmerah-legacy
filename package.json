@@ -23,6 +23,7 @@
     "js-yaml": "^3.0.2",
     "underscore": "^1.6.0",
     "hbs": "^2.6.0",
-    "starmutt": "*"
+    "starmutt": "*",
+    "memory-cache": "0.0.5"
   }
 }
