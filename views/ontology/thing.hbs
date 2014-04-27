@@ -2,8 +2,8 @@
 	{{#with resource}}
 	<article class="activity">
 		<header>
-			<h1>{{[@id]}}</h1>
-			<h2>{{[rdfs:label].[0]}}
+			<h1>{{[@type]}}</h1>
+			<h2>{{preferredLabel}}</h2>
 		</header>
 
 		<div>
@@ -11,7 +11,7 @@
 				{{#each this}}
 				<tr>
 					<th>{{@key}}<th>
-					<td>{{this}}</td>
+					<td>{{ldObject this}}</td>
 				</tr>
 				{{/each}}
 			</table>

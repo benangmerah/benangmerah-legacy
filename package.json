@@ -24,6 +24,7 @@
     "underscore": "^1.6.0",
     "hbs": "^2.6.0",
     "starmutt": "*",
-    "memory-cache": "0.0.5"
+    "memory-cache": "0.0.5",
+    "handlebars-helpers": "^0.5.5"
   }
 }

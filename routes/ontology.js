@@ -5,33 +5,14 @@ var async = require('async');
 var conn = require('starmutt');
 var cache = require('memory-cache');
 var config = require('config');
+var _ = require('lodash');
+
+var shared = require('../shared');
 
 var lifetime = config.cachelifetime || 100;
 
 var ontologyDefinition = 'https://raw.githubusercontent.com/benangmerah/wilayah/master/ontology.ttl';
 var redirectPlacesTo = 'https://raw.githubusercontent.com/benangmerah/wilayah/master/instances.ttl';
-
-var rdfNS = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
-var rdfsNS = 'http://www.w3.org/2000/01/rdf-schema#';
-var owlNS = 'http://www.w3.org/2002/07/owl#';
-var xsdNS = 'http://www.w3.org/2001/XMLSchema#';
-var ontNS = 'http://benangmerah.net/ontology/';
-var placeNS = 'http://benangmerah.net/place/idn/';
-var bpsNS = 'http://benangmerah.net/place/idn/bps/';
-var geoNS = 'http://www.w3.org/2003/01/geo/wgs84_pos#';
-var qbNS = 'http://purl.org/linked-data/cube#';
-
-var context = {
-  'rdf': rdfNS,
-  'rdfs': rdfsNS,
-  'owl': owlNS,
-  'xsd': xsdNS,
-  'bps': bpsNS,
-  'geo': geoNS,
-  'qb': qbNS,
-  'bm': ontNS,
-  '': 'http://data.ukp.go.id/dataset/penduduk-miskin-dan-indeks-kemiskinan#'
-}
 
 var router = express.Router();
 module.exports = router;
@@ -44,6 +25,11 @@ function describeInternalResource(req, res, next) {
   var originalUrl = req.originalUrl;
   req.resourceURI = 'http://benangmerah.net' + originalUrl;
   req.url = req.resourceURI;
+  next();
+}
+
+function describeExternalResource(req, res, next) {
+  req.resourceURI = req.params.resourceURI;
   next();
 }
 
@@ -124,23 +110,14 @@ function describeKota(req, res, next) {
   res.json('Hello kota');
 }
 
-function describePlace(req, res, next) {
-  res.json('Hello place');
-}
-
 function describeThing(req, res, next) {
   function execDescribeQuery(callback) {
-    var getLabelsQuery = util.format('describe <%s>', req.resourceURI);
+    var describeQuery = util.format('describe <%s>', req.resourceURI);
 
     conn.getGraph({
-      query: getLabelsQuery,
+      query: describeQuery,
       form: 'compact',
-      context: {
-        'bm': 'http://benangmerah.net/ontology/',
-        'geo': 'http://www.w3.org/2003/01/geo/wgs84_pos#',
-        'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
-        'owl': 'http://www.w3.org/2002/07/owl#'
-      }
+      context: shared.context
     }, function(err, data) {
       callback(err, data);
     });
@@ -151,8 +128,14 @@ function describeThing(req, res, next) {
       return next(err)
     }
 
+    var resource = _.extend({}, data);
+    delete resource['@context'];
+
+    var title = shared.getPreferredLabel(data);
+
     res.render('ontology/thing', {
-      resource: data
+      title: title,
+      resource: resource
     });
   }
 
@@ -166,19 +149,24 @@ function sameAsFallback(req, res, next) {
 
   var query = util.format('select distinct ?twin \
     where { { ?twin owl:sameAs <%s> } \
-    union { <%s> owl:sameAs ?twin } }', req.resourceURI);
+    union { <%s> owl:sameAs ?twin } } limit 2', req.resourceURI);
+
   conn.getColValues(query, function(err, col) {
     if (err) {
       return next(err);
     }
     if (col.length === 1) {
-      res.send('Redirectable to ' + col[0]);
+      res.redirect(shared.getDescriptionPath(col[0]));
+    }
+    else {
+      next();
     }
   });
 }
 
 router.use('/ontology', derefOntology);
 router.use('/place', describeInternalResource);
+router.use('/resource/:resourceURI', describeExternalResource);
 router.use(ontologyRouter);
 
 ontologyRouter.route('http://www.w3.org/2002/07/owl#Thing', describeThing);

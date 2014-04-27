@@ -11,6 +11,7 @@ var conn = require('starmutt');
 // express middleware
 var exphbs  = require('express3-handlebars');
 var hbs = require('hbs');
+var helperLib = require('handlebars-helpers');
 var lessMiddleware = require('less-middleware');
 var favicon = require('static-favicon');
 var logger = require('morgan');
@@ -19,12 +20,14 @@ var methodOverride = require('method-override');
 var serveStatic = require('serve-static');
 var errorHandler = require('errorhandler');
 
+// local express-related modules
+var helpers = require('./helpers');
 var routes = require('./routes');
 var ontologyRouter = require('./routes/ontology');
 
 // CONFIG INIT ---
 if (!config.port) {
-  config.port = app.env.PORT || 3000;
+  config.port = process.env.PORT || 3000;
 }
 
 // EXPRESS INIT ---
@@ -38,6 +41,11 @@ app.set('views', __dirname + '/views');
 
 // express: handlebars view engine
 hbs.registerPartials(__dirname + '/views/partials');
+helperLib.register(hbs, {});
+for (var helper in helpers) {
+  hbs.registerHelper(helper, helpers[helper]);
+}
+
 app.engine('handlebars', hbs.__express);
 app.set('view engine', 'hbs');
 app.set('view options', { layout: 'layouts/main' })
