@@ -1,0 +1,21 @@
+<div class="content activity">
+	{{#with resource}}
+	<article class="activity">
+		<header>
+			<h1>{{[@id]}}</h1>
+			<h2>{{[rdfs:label].[0]}}
+		</header>
+
+		<div>
+			<table class="table">
+				{{#each this}}
+				<tr>
+					<th>{{@key}}<th>
+					<td>{{this}}</td>
+				</tr>
+				{{/each}}
+			</table>
+		</div>
+	</article>
+	{{/with}}
+</div>

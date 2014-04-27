@@ -11,6 +11,28 @@ var lifetime = config.cachelifetime || 100;
 var ontologyDefinition = 'https://raw.githubusercontent.com/benangmerah/wilayah/master/ontology.ttl';
 var redirectPlacesTo = 'https://raw.githubusercontent.com/benangmerah/wilayah/master/instances.ttl';
 
+var rdfNS = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+var rdfsNS = 'http://www.w3.org/2000/01/rdf-schema#';
+var owlNS = 'http://www.w3.org/2002/07/owl#';
+var xsdNS = 'http://www.w3.org/2001/XMLSchema#';
+var ontNS = 'http://benangmerah.net/ontology/';
+var placeNS = 'http://benangmerah.net/place/idn/';
+var bpsNS = 'http://benangmerah.net/place/idn/bps/';
+var geoNS = 'http://www.w3.org/2003/01/geo/wgs84_pos#';
+var qbNS = 'http://purl.org/linked-data/cube#';
+
+var context = {
+  'rdf': rdfNS,
+  'rdfs': rdfsNS,
+  'owl': owlNS,
+  'xsd': xsdNS,
+  'bps': bpsNS,
+  'geo': geoNS,
+  'qb': qbNS,
+  'bm': ontNS,
+  '': 'http://data.ukp.go.id/dataset/penduduk-miskin-dan-indeks-kemiskinan#'
+}
+
 var router = express.Router();
 module.exports = router;
 
@@ -106,6 +128,37 @@ function describePlace(req, res, next) {
   res.json('Hello place');
 }
 
+function describeThing(req, res, next) {
+  function execDescribeQuery(callback) {
+    var getLabelsQuery = util.format('describe <%s>', req.resourceURI);
+
+    conn.getGraph({
+      query: getLabelsQuery,
+      form: 'compact',
+      context: {
+        'bm': 'http://benangmerah.net/ontology/',
+        'geo': 'http://www.w3.org/2003/01/geo/wgs84_pos#',
+        'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+        'owl': 'http://www.w3.org/2002/07/owl#'
+      }
+    }, function(err, data) {
+      callback(err, data);
+    });
+  }
+
+  function render(err, data) {
+    if (err) {
+      return next(err)
+    }
+
+    res.render('ontology/thing', {
+      resource: data
+    });
+  }
+
+  async.waterfall([execDescribeQuery], render);
+}
+
 function sameAsFallback(req, res, next) {
   if (!req.resourceURI) {
     next();
@@ -126,9 +179,11 @@ function sameAsFallback(req, res, next) {
 
 router.use('/ontology', derefOntology);
 router.use('/place', describeInternalResource);
-
-ontologyRouter.route('http://benangmerah.net/ontology/Provinsi', describeProvinsi);
-ontologyRouter.route('http://benangmerah.net/ontology/Place', describePlace);
-ontologyRouter.route('http://benangmerah.net/ontology/Kota', describeKota);
 router.use(ontologyRouter);
+
+ontologyRouter.route('http://www.w3.org/2002/07/owl#Thing', describeThing);
+ontologyRouter.route('http://benangmerah.net/ontology/Place', describePlace);
+ontologyRouter.route('http://benangmerah.net/ontology/Provinsi', describeProvinsi);
+ontologyRouter.route('http://benangmerah.net/ontology/Kota', describeKota);
+
 router.use(sameAsFallback);
