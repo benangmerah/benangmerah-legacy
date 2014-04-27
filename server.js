@@ -1,7 +1,10 @@
+// BenangMerah
+// To run: node server.js
+
+// modules
 var express = require('express');
 var stardog = require('stardog');
 var path = require('path');
-var async = require('async');
 var config = require('config');
 var conn = require('starmutt');
 
@@ -18,6 +21,13 @@ var errorHandler = require('errorhandler');
 
 var routes = require('./routes');
 var ontologyRouter = require('./routes/ontology');
+
+// CONFIG INIT ---
+if (!config.port) {
+  config.port = app.env.PORT || 3000;
+}
+
+// EXPRESS INIT ---
 
 // express: init
 var app = express();
@@ -54,12 +64,14 @@ if ('development' == app.get('env')) {
   app.use(errorHandler({ dumpExceptions: true, showStack: true }));
 }
 
+// STARDOG INIT ---
 if (config.stardog) {
   conn.setEndpoint(config.stardog.endpoint);
   conn.setCredentials(config.stardog.username, config.stardog.password);
   conn.setDefaultDatabase(config.stardog.database);
 }
 
-app.listen(config.port || 3000, function() {
+// RUN EXPRESS ---
+app.listen(config.port, function() {
   console.log('BenangMerah running in ' + app.get('env') + ' mode on port ' + config.port + '.');
 });
