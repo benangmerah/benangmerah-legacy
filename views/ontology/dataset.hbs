@@ -1,0 +1,35 @@
+<div class="content resource">
+	{{#with resource}}
+	<article class="resource">
+		<header>
+			<h1>Tentang kumpulan data</h1>
+			<h2>{{preferredLabel}}</h2>
+		</header>
+
+		<div class="row">
+			<div class="description col-lg-8 col-md-6">
+			{{#if rdfs:comment}}
+			{{#markdown}}{{trim rdfs:comment}}{{/markdown}}
+			{{/if}}
+			</div>
+
+			<div class="col-lg-4 col-md-6">
+				<table class="table">
+					{{#if [@id]}}
+					<tr>
+						<th>Pranala</th>
+						<td>{{link [@id]}}</td>
+					</tr>
+					{{/if}}
+					{{#if dc:publisher}}
+					<tr>
+						<th>Pranala</th>
+						<td>{{ldObject [@id]}}</td>
+					</tr>
+					{{/if}}
+				</table>
+			</div>
+		</div>
+	</article>
+	{{/with}}
+</div>

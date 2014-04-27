@@ -47,17 +47,24 @@ p {
     margin-bottom: 0;
     font-family: Roboto;
     font-weight: 500;
-    font-size: 30px;
+    font-size: 26px;
     .narrow-kerning();
 
-    span {
-      color: @brand-primary;
+    a {
+      color: black;
+
+      span {
+        color: @brand-primary;
+      }
     }
 
     i {
-      font-weight: 300;
-      color: @gray-light;
-      font-size: @font-size-large;
+      font-weight: normal;
+      letter-spacing: 0;
+      color: @gray-lighter;
+      font-size: @font-size-base;
+      font-style: normal;
+      text-transform: uppercase;
     }
   }
 }
@@ -97,7 +104,7 @@ body > .content {
   .positioning {
     font-family: @font-family-accent;
     font-weight: 300;
-    font-size: 44px;
+    font-size: 36px;
     line-height: 1.15;
     padding: 45px 15px;
     margin: -30px -15px 30px;
@@ -109,6 +116,21 @@ body > .content {
     font-weight: 500;
     font-style: normal;
     color: @gray-darker;
+  }
+  // .province-browser {
+  //   margin-left: -15px;
+  //   margin-right: -15px;
+  //   padding: 0 15px 30px;
+  //   border-bottom: 1px solid @gray-lighter;
+  // }
+  .province-browser ul {
+    list-style: none;
+    padding: 0;
+    font-size: 1.2 * @font-size-large;
+    -webkit-column-count: 3; /* Chrome, Safari, Opera */
+    -moz-column-count: 3; /* Firefox */
+    column-count: 3;
+    font-weight: 300;
   }
   .intro {
     .make-row();
@@ -247,6 +269,86 @@ body > .content {
           td {
             text-align: right;
           }
+        }
+      }
+    }
+  }
+}
+
+.content.resource {
+  article {
+    & > header {
+      padding: 45px 15px;
+      margin: -30px -15px 30px;
+      border-bottom: 1px solid @gray-lighter;
+
+      h1 {
+        .h4;
+        color: @gray-light;
+        margin: 0 0 5px 0;
+      }
+      h2 {
+        .h1;
+        color: #000;
+        margin: 0;
+        font-weight: 300;
+      }
+    }
+
+    .infobox-collection {
+      padding-bottom: 15px;
+      margin-bottom: 30px;
+      border-bottom: 1px solid #eee;
+    }
+    .infobox-collection:last-child {
+      margin-bottom: 0;
+      border-bottom: 0 none;
+    }
+
+    .infobox {
+      margin-bottom: 15px;
+
+      h4 {
+        margin-bottom: 15px;
+        .source-link {
+          float: right;
+          font-weight: 300;
+        }
+      }
+      address.source {
+        font-size: @font-size-small;
+        color: @gray;
+      }
+    }
+
+    .description {
+      font-size: 1.2 * @font-size-base;
+      font-weight: normal;
+      p {
+        font-weight: normal;
+      }
+    }
+
+    h3 {
+      font-size: @font-size-h4;
+      font-weight: 300;
+      margin-top: 0;
+      margin-bottom: 30px;
+    }
+
+    nav {
+      h4 {
+        font-size: @font-size-base;
+        font-weight: normal;
+        margin: 15px 0 10px;
+        color: @gray;
+      }
+      ul {
+        padding-left: 0;
+        list-style: none;
+
+        li {
+          margin: 5px 0;
         }
       }
     }

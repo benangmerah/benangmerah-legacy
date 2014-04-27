@@ -31,6 +31,9 @@ shared.getLdValue = function(ldObj) {
 }
 
 shared.getDescriptionPath = function(resourceURI) {
+  if (!resourceURI) {
+    return '';
+  }
   if (resourceURI.indexOf('http://benangmerah.net') === 0) {
     return resourceURI.substring('http://benangmerah.net'.length);
   }

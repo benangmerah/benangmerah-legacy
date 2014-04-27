@@ -1,5 +1,5 @@
-<div class="content activity">
-	<article class="activity">
+<div class="content resource">
+	<article>
 		<header>
 			<h1>Tentang</h1>
 			<h2>{{#is thisPlace.[@type] 'bm:Provinsi'}}Provinsi{{/is}} {{title}}</h2>
@@ -10,15 +10,15 @@
 				{{#ifCollection datasets}}
 				<section class="infobox-collection">
 					<header>
-						<h3>Statistik</h3>
+						<h3>Kumpulan data</h3>
 					</header>
 					{{#each datasets}}
 					<section class="infobox">
-						<h4>{{label}} <span class="source-link">({{descriptionLink @key "sumber"}})</span></h4>
+						<h4>{{label}}</h4>
 						<table class="table table-striped table-bordered">
 							<thead>
 								<tr>
-									<th>Ukuran</th>
+									<th></th>
 									{{#each periods}}
 									<th>{{this}}</th>
 									{{/each}}
@@ -27,7 +27,7 @@
 							<tbody>
 							{{#each data}}
 								<tr>
-									<td>{{@key}}</td>
+									<th>{{@key}}</th>
 									{{#periodValues ../periods}}
 									<td>{{@value}}</td>
 									{{/periodValues}}
@@ -43,43 +43,34 @@
 				</section>
 				{{/ifCollection}}
 
-				{{#with thisPlace}}
-				{{#if geo:lat}}
-				<section class="infobox on-map">
-					<h4>Letak geografis</h4>
-					{{>map}}
+				{{#if thisPlace.geo:lat}}
+				<section class="infobox-collection on-map">
+					<h3>Letak geografis</h3>
+					{{>map thisPlace}}
 				</section>
 				{{/if}}
-
-				{{!-- 
-				<section class="infobox properties">
-					<h4>Tentang {{preferredLabel}}</h4>
-					<table class="table">
-						{{#each this}}
-						{{#contains @key '@'}}
-						<!-- -->
-						{{else}}
-						<tr>
-							<th>{{@key}}<th>
-							<td>{{ldObject this}}</td>
-						</tr>
-						{{/contains}}
-						{{/each}}
-					</table>
-				</section>
-				--}}
-				{{/with}}
 			</div>
-			<div class="col-lg-3 col-md-4">
-				<section class="infobox">
-					<h4>Wilayah bagian</h4>
+			<nav class="col-lg-3 col-md-4">
+				<h3>Telusur</h3>
+				<div class="parent-link">
+					<i class="glyphicon glyphicon-arrow-up"></i>
+					{{#ifCollection parent}}
+					{{descriptionLink parent}}
+					{{else}}
+					<a href="/">Seluruh provinsi</a>
+					{{/ifCollection}}
+				</div>
+				{{#ifCollection children}}
+				<section class="children">
+					<h4>Wilayah bagian {{title}}:</h4>
 					<ul>
 					{{#each children}}
 						<li>{{ldObject this}}</li>
 					{{/each}}
 					</ul>
 				</section>
-			</div>
+				{{/ifCollection}}
+			</nav>
 		</div>
 	</article>
 </div>

@@ -1,9 +1,9 @@
     <div class="content home">
       <section class="positioning">
-        <p>BenangMerah adalah alat untuk <em>melacak</em> dan <em>memetakan</em> kegiatan <em>pembangunan sosial</em> di Indonesia.</p>
+        <p>BenangMerah <em>mempermudah&nbsp;akses</em> terhadap <em>data&nbsp;pembangunan&nbsp;Indonesia</em> dengan <em>menghubungkan</em> berbagai sumber <i>open data</i>.</p>
       </section>
 
-      <section class="intro">
+{{!--       <section class="intro">
         <section class="background">
           <header>
             <h4>Pembangunan adalah tanggung jawab <span>bersama</span>.</h4>
@@ -19,30 +19,24 @@
           <!-- Insert illustration here -->
           <p>BenangMerah menghimpun data mengenai <span>kegiatan/projek pembangunan sosial</span> serta <span>demografi penduduk dan faktor-faktor pembangunan</span> dari berbagai sumber ke dalam sebuah basis data, kemudian menampilkannya dalam bentuk <span>peta</span>, <span>indeks</span>, dan <span>API terbuka</span>.</p>
         </section>
-      </section>
+      </section> --}}
 
-      <section class="intro">
+      <section class="province-browser">
         <section class="background">
           <header>
-            <h4>Telusuri data berdasarkan provinsi.</h4>
+            <h4>Telusuri data berdasarkan provinsi</h4>
           </header>
-          <ul>
+          <ul class="provinces-list">
             {{#each provinces}}
             <li><a href="{{path}}">{{name}}</a></li>
             {{/each}}
           </ul>
         </section>
       </section>
-
-      <section class="information-overview">
-        <header>
-          <h1>Melacak <span>{{activityCount}} kegiatan</span> dan <span>{{orgCount}} organisasi</span>.</h1>
-        </header>
-      </section>
-
+{{!-- 
       <section class="contributing">
         <header>
-          <h3>Berkontribusi</h3>
+          <h4>Dukung kami</h4>
         </header>
         <section class="options">
           <section>
@@ -50,18 +44,14 @@
             <p>Dukung kami dengan berbagi data portfolio Anda. Kami mendukung IATI, standar internasional untuk data aliran bantuan pembangunan.</p>
           </section>
           <section>
-            <h5>Bagi organisasi/jaringan pemuda</h5>
+            <h5>Bagi pelaku pembangunan</h5>
             <p>Dukung kami dengan berbagi data projek sosial yang dilaksanakan oleh anggota Anda.</p>
-          </section>
-          <section>
-            <h5>Bagi pelaksana kegiatan</h5>
-            <p>Dukung kami dengan mendaftarkan kegiatan/projek Anda.</p>
           </section>
           <section>
             <h5>Bagi pengembang</h5>
             <p>BenangMerah adalah perangkat lunak sumber-terbuka. <a href="http://github.com/benangmerah/benangmerah">Fork me on GitHub.</a></p>
           </section>
-        </section>
+        </section> --}}
       </section>
     </div>
 

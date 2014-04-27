@@ -1,9 +1,9 @@
-<div class="content activity">
+<div class="content resource">
 	{{#with resource}}
-	<article class="activity">
+	<article class="resource">
 		<header>
 			<h1>{{[@type]}}</h1>
-			<h2>{{preferredLabel}}</h2>
+			<h2>{{#ifCollection rdfs:label}}{{preferredLabel}}{{else}}{{[@id]}}{{/ifCollection}}</h2>
 		</header>
 
 		<div>

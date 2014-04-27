@@ -8,6 +8,7 @@ var config = require('config');
 var _ = require('lodash');
 
 var shared = require('../shared');
+var context = shared.context;
 
 var lifetime = config.cachelifetime || 100;
 
@@ -25,12 +26,12 @@ function describeInternalResource(req, res, next) {
   var originalUrl = req.originalUrl;
   req.resourceURI = 'http://benangmerah.net' + originalUrl;
   req.url = req.resourceURI;
-  next();
+  ontologyRouter(req, res, next);
 }
 
 function describeExternalResource(req, res, next) {
   req.resourceURI = req.params.resourceURI;
-  next();
+  ontologyRouter(req, res, next);
 }
 
 var ontologyRoutes = [];
@@ -130,6 +131,28 @@ function describePlace(req, res, next) {
     });
   }
 
+  function getParent(callback) {
+    var parentQuery = util.format(
+      'describe ?parent where { <%s> bm:hasParent ?parent }',
+      req.resourceURI
+    );
+
+    conn.getGraph({
+      query: parentQuery,
+      form: 'compact',
+      context: shared.context
+    }, function(err, data) {
+      if (err) {
+        return callback(err);
+      }
+
+      if (data['@id'])
+        vars.parent = data;
+
+      return callback();
+    })
+  }
+
   function getChildren(callback) {
     var childrenQuery = util.format(
       'describe ?child where { ?child bm:hasParent <%s> }',
@@ -180,8 +203,6 @@ function describePlace(req, res, next) {
   function parseStats(rows, callback) {
     var datasets = {};
 
-    console.log(rows);
-
     rows.forEach(function(row) {
       var dataset = datasets[row.dataset];
       if (!dataset) {
@@ -217,7 +238,39 @@ function describePlace(req, res, next) {
     }));
   }
 
-  async.series([execDescribeQuery, getChildren, getStats], render);
+  async.series([execDescribeQuery, getParent, getChildren, getStats], render);
+}
+
+function describeDataset(req, res, next) {
+  function execDescribeQuery(callback) {
+    var describeQuery = util.format('describe <%s>', req.resourceURI);
+
+    conn.getGraph({
+      query: describeQuery,
+      form: 'compact',
+      context: shared.context
+    }, function(err, data) {
+      callback(err, data);
+    });
+  }
+
+  function render(err, data) {
+    if (err) {
+      return next(err)
+    }
+
+    var resource = _.extend({}, data);
+    delete resource['@context'];
+
+    var title = shared.getPreferredLabel(data);
+
+    res.render('ontology/dataset', {
+      title: title,
+      resource: resource
+    });
+  }
+
+  async.waterfall([execDescribeQuery], render);
 }
 
 function describeThing(req, res, next) {
@@ -277,11 +330,9 @@ function sameAsFallback(req, res, next) {
 router.use('/ontology', derefOntology);
 router.use('/place', describeInternalResource);
 router.use('/resource/:resourceURI', describeExternalResource);
-router.use(ontologyRouter);
 
-ontologyRouter.route('http://benangmerah.net/ontology/Place', describePlace);
+ontologyRouter.route(context.bm + 'Place', describePlace);
+ontologyRouter.route(context.qb + 'DataSet', describeDataset);
 ontologyRouter.route('http://www.w3.org/2002/07/owl#Thing', describeThing);
-ontologyRouter.route('http://benangmerah.net/ontology/Provinsi', describeProvinsi);
-ontologyRouter.route('http://benangmerah.net/ontology/Kota', describeKota);
 
-router.use(sameAsFallback);
+router.use('/resource', sameAsFallback);

@@ -9,7 +9,6 @@ var config = require('config');
 var conn = require('starmutt');
 
 // express middleware
-var exphbs  = require('express3-handlebars');
 var hbs = require('hbs');
 var helperLib = require('handlebars-helpers');
 var lessMiddleware = require('less-middleware');
@@ -55,9 +54,9 @@ app.use(favicon());
 app.use(logger('dev'));
 app.use(bodyParser());
 app.use(methodOverride());
-app.use(lessMiddleware(
-  'src/less',
-  { dest: 'public/css', force: ('development' == app.get('env')) },
+app.use('/css', lessMiddleware(
+  __dirname + '/src/less',
+  { dest: __dirname + '/public/css', force: true },
   {},
   { compress: !('development' == app.get('env')) }
 ));
