@@ -1,6 +1,7 @@
 // helpers
 // All members of module.exports will be registered as a hbs helper
 
+var _ = require('lodash');
 var shared = require('./shared');
 var Handlebars = require('hbs').handlebars;
 
@@ -22,7 +23,7 @@ helpers.preferredLabel = function() {
   return shared.getPreferredLabel(resource);
 }
 
-helpers.descriptionLink = function(value) {
+helpers.descriptionLink = function(value, lbl) {
   if (typeof value === 'string') {
     var uri = value;
   }
@@ -32,7 +33,11 @@ helpers.descriptionLink = function(value) {
 
   var descriptionPath = shared.getDescriptionPath(uri);
 
-  var label = shared.getPreferredLabel(value);
+  var label;
+  if (arguments.length === 3)
+    label = lbl;
+  if (!label)
+    label = shared.getPreferredLabel(value);
   if (!label)
     label = uri;
 
@@ -70,4 +75,20 @@ helpers.flush = function() {
   deferredBlocks = [];
 
   return new Handlebars.SafeString(output);
+}
+
+helpers.periodValues = function(periods, options) {
+  var output = '';
+  var self = this;
+  periods.forEach(function(period) {
+    output += options.fn(self, {data: { value: self[period] } });
+  });
+
+  return output;
+}
+
+helpers.ifCollection = function(collection, options) {
+  if (!_.isEmpty(collection)) {
+    return options.fn(this);
+  }
 }

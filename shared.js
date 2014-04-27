@@ -73,6 +73,10 @@ shared.getPreferredLabel = function(jsonLdResource) {
     }
   })
 
+  if (!preferredLabel && jsonLdResource['@id']) {
+    preferredLabel = shared.getPropertyName(jsonLdResource['@id']);
+  }
+
   return preferredLabel;
 }
 

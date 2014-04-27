@@ -150,6 +150,63 @@ function describePlace(req, res, next) {
     });
   }
 
+  function getStats(callback) {
+    var statsQuery = util.format(
+      'select distinct ?dataset ?datasetLabel ?measureLabel ?period ?measureValue { \
+         ?o a qb:Observation. \
+         ?o qb:dataSet ?dataset. \
+         ?dataset rdfs:label ?datasetLabel. \
+         ?o bm:refArea ?x. \
+         { ?x owl:sameAs <%s>. } union { <%s> owl:sameAs ?x. } \
+         ?o bm:refPeriod ?period. \
+         ?o ?measure ?measureValue. \
+         ?measure a qb:MeasureProperty. \
+         ?measure rdfs:label ?measureLabel. \
+       } order by asc(?measureLabel) asc(?period)',
+       // TODO add language filter
+       req.resourceURI, req.resourceURI);
+
+    conn.getResultsValues({ query: statsQuery, reasoning: 'QL' },
+      function(err, data) {
+        if (err) {
+          return callback(err);
+        }
+        else {
+          parseStats(data, callback)
+        }
+      });
+  }
+
+  function parseStats(rows, callback) {
+    var datasets = {};
+
+    console.log(rows);
+
+    rows.forEach(function(row) {
+      var dataset = datasets[row.dataset];
+      if (!dataset) {
+        dataset = datasets[row.dataset] = {};
+        dataset.label = row.datasetLabel;
+        dataset.data = {};
+        dataset.periods = [];
+      }
+
+      if (dataset.periods.indexOf(row.period) === -1) {
+        dataset.periods.push(row.period);
+      }
+
+      var measure = dataset.data[row.measureLabel];
+      if (!measure) {
+        measure = dataset.data[row.measureLabel] = {};
+      }
+      measure[row.period] = row.measureValue;
+    });
+
+    vars.datasets = datasets;
+
+    callback();
+  }
+
   function render(err) {
     if (err) {
       return next(err);
@@ -160,7 +217,7 @@ function describePlace(req, res, next) {
     }));
   }
 
-  async.series([execDescribeQuery, getChildren], render);
+  async.series([execDescribeQuery, getChildren, getStats], render);
 }
 
 function describeThing(req, res, next) {
