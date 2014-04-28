@@ -1,30 +1,29 @@
 {
   "name": "benangmerah",
   "author": "Andhika Nugraha <andhika.nugraha@outlook.com>",
-  "description": "A platform to track social development projects in Indonesia.",
-  "version": "0.1.0",
+  "description": "A Semantic Web-based platform for linking Indonesian social development data.",
+  "version": "0.2.0",
   "private": true,
   "dependencies": {
     "express": "4.x",
-    "marked": "*",
-    "async": "*",
-    "require-all": "*",
-    "less-middleware": "*",
+    "async": "^0.7.0",
+    "require-all": "0.0.8",
+    "less-middleware": "^0.2.1-beta",
     "request": "2.x",
-    "moment": "*",
     "body-parser": "^1.0.1",
     "method-override": "^1.0.0",
     "morgan": "^1.0.0",
     "static-favicon": "^1.0.2",
     "serve-static": "^1.0.4",
     "errorhandler": "^1.0.0",
-    "stardog": "^0.1.1",
     "config": "^0.4.35",
     "js-yaml": "^3.0.2",
     "underscore": "^1.6.0",
     "hbs": "^2.6.0",
     "starmutt": "*",
     "memory-cache": "0.0.5",
-    "handlebars-helpers": "^0.5.5"
+    "handlebars-helpers": "^0.5.5",
+    "lodash": "^2.4.1",
+    "grunt": "^0.4.4"
   }
 }

@@ -3,8 +3,6 @@
 
 // modules
 var express = require('express');
-var stardog = require('stardog');
-var path = require('path');
 var config = require('config');
 var conn = require('starmutt');
 
@@ -60,7 +58,7 @@ app.use('/css', lessMiddleware(
   {},
   { compress: !('development' == app.get('env')) }
 ));
-app.use(serveStatic(path.join(__dirname, 'public')));
+app.use(serveStatic(__dirname + '/public'));
 
 // app router
 app.use(routes);
