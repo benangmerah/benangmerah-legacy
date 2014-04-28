@@ -13,8 +13,7 @@ var context = shared.context;
 
 var lifetime = config.cachelifetime || 100;
 
-var ontologyDefinition = 'https://raw.githubusercontent.com/benangmerah/wilayah/master/ontology.ttl';
-var redirectPlacesTo = 'https://raw.githubusercontent.com/benangmerah/wilayah/master/instances.ttl';
+var ontologyDefinition = 'https://raw.githubusercontent.com/benangmerah/ontology/master/ontology.ttl';
 
 var router = express.Router();
 module.exports = router;
