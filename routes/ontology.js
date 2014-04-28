@@ -5,6 +5,7 @@ var async = require('async');
 var conn = require('starmutt');
 var cache = require('memory-cache');
 var config = require('config');
+var n3util = require('n3').Util;
 var _ = require('lodash');
 
 var shared = require('../shared');
@@ -26,81 +27,76 @@ function describeInternalResource(req, res, next) {
   var originalUrl = req.originalUrl;
   req.resourceURI = 'http://benangmerah.net' + originalUrl;
   req.url = req.resourceURI;
-  ontologyRouter(req, res, next);
+  next();
 }
 
 function describeExternalResource(req, res, next) {
   req.resourceURI = req.params.resourceURI;
-  ontologyRouter(req, res, next);
+  next();
 }
 
-var ontologyRoutes = [];
-function ontologyRouter(req, res, next) {
-  var uri = req.resourceURI;
-
-  if (!uri) {
-    next();
-  }
-
-  function resolveTypes(callback) {
-    var query = util.format('select ?type where { <%s> a ?type }', uri);
-    conn.getColValues({ query: query, reasoning: 'QL' }, function(err, resolvedTypes) {
-      if (err) {
-        callback(err);
-      }
-      else {
-        cache.put('resolvedTypes:' + uri, resolvedTypes, lifetime);
-        return callback(null, resolvedTypes);
-      }
-    });
-  }
-
-  function callMatchingRoute(err, resolvedTypes) {
-    if (err) {
-      return next(err);
-    }
-
-    var found = false;
-    ontologyRoutes.forEach(function(route, idx) {
-      if (found) {
-        return;
+function ontology() {
+  if (_.isEmpty(arguments)) {
+    return function ontologyRequestOnly(req, res, next) {
+      if (!req.resourceURI) {
+        return next('route');
       }
 
-      var classURI = route.classURI;
-      if (resolvedTypes.indexOf(classURI) !== -1) {
-        console.log('Found: ' + classURI);
-        cache.put('matchedOntologyRouteIndex:' + uri, idx, lifetime);
-        ontologyRoutes[idx].callback(req, res, next);
-        found = true;
-        return;
-      }
-    });
-
-    if (!found) {
       return next();
     }
   }
 
-  var cachedRouteIndex = cache.get('matchedOntologyRouteIndex:' + uri);
-  var cachedResolvedTypes = cache.get('resolvedTypes:' + uri);
+  var hits = []; // Array of resourceURIs that will match this route
+  var typesToMatch = _.map(arguments, function(type) {
+    if (n3util.isQName(type)) {
+      return n3util.expandQName(type, shared.context);
+    }
 
-  if (cachedRouteIndex) {
-    console.log('Found in cache: ' + uri + ' a ' + ontologyRoutes[cachedRouteIndex].classURI);
-    ontologyRoutes[cachedRouteIndex].callback(req, res, next);
-    return;
-  }
-  else if (cachedResolvedTypes) {
-    return callMatchingRoute(null, cachedResolvedTypes);
-  }
-  else {
-    return resolveTypes(callMatchingRoute);
-  }
-}
-ontologyRouter.route = function addOntologyRoute(classURI, callback) {
-  ontologyRoutes.push({
-    classURI: classURI,
-    callback: callback
+    return type;
   });
+
+  return function handleOntologyRequest(req, res, next) {
+    var uri = req.resourceURI;
+    if (!uri) {
+      return next('route');
+    }
+    if (hits.indexOf(uri) !== -1) {
+      return next(); // In cache, carry on
+    }
+
+    function resolveTypes(callback) {
+      var query = util.format('select ?type where { <%s> a ?type }', uri);
+      conn.getColValues({ query: query, reasoning: 'QL' }, function(err, resolvedTypes) {
+        if (err) {
+          return next(err);
+        }
+
+        cache.put('resolvedTypes:' + uri, resolvedTypes, lifetime);
+        return callback(resolvedTypes);
+      });
+    }
+
+    function callMatchingRoute(resolvedTypes) {
+      for (var i = 0; i < typesToMatch.length; i++) {
+        var classURI = typesToMatch[i];
+        if (resolvedTypes.indexOf(classURI) !== -1) {
+          hits.push(uri);
+          return next();
+        }
+      }
+
+      // Not found, next route please
+      return next('route');
+    }
+
+    var cachedResolvedTypes = cache.get('resolvedTypes:' + uri);
+    if (cachedResolvedTypes) {
+      return callMatchingRoute(cachedResolvedTypes);
+    }
+    else {
+      return resolveTypes(callMatchingRoute);
+    }
+  }
 }
 
 function describeProvinsi(req, res, next) {
@@ -312,7 +308,7 @@ function sameAsFallback(req, res, next) {
 
   var query = util.format('select distinct ?twin \
     where { { ?twin owl:sameAs <%s> } \
-    union { <%s> owl:sameAs ?twin } } limit 2', req.resourceURI);
+    union { <%s> owl:sameAs ?twin } }', req.resourceURI);
 
   return conn.getColValues(query, function(err, col) {
     if (err) {
@@ -327,12 +323,11 @@ function sameAsFallback(req, res, next) {
   });
 }
 
-router.use('/ontology', derefOntology);
-router.use('/place', describeInternalResource);
-router.use('/resource/:resourceURI', describeExternalResource);
+router.all('/ontology/*', derefOntology);
+router.all('/place/*', describeInternalResource);
+router.all('/resource/:resourceURI', describeExternalResource);
 
-ontologyRouter.route(context.bm + 'Place', describePlace);
-ontologyRouter.route(context.qb + 'DataSet', describeDataset);
-ontologyRouter.route('http://www.w3.org/2002/07/owl#Thing', describeThing);
-
-router.use('/resource', sameAsFallback);
+router.all('*', ontology('bm:Place'), describePlace);
+router.all('*', ontology('qb:DataSet'), describeDataset);
+router.all('*', ontology('owl:Thing'), describeThing);
+router.all('*', ontology(), sameAsFallback);

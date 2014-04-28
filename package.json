@@ -24,6 +24,7 @@
     "memory-cache": "0.0.5",
     "handlebars-helpers": "^0.5.5",
     "lodash": "^2.4.1",
-    "grunt": "^0.4.4"
+    "grunt": "^0.4.4",
+    "n3": "^0.2.7"
   }
 }
