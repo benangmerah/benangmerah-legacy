@@ -54,7 +54,7 @@ app.use(bodyParser());
 app.use(methodOverride());
 app.use('/css', lessMiddleware(
   __dirname + '/src/less',
-  { dest: __dirname + '/public/css', force: true },
+  { dest: __dirname + '/public/css', force: (app.get('env') === 'development') },
   {},
   { compress: !('development' == app.get('env')) }
 ));
