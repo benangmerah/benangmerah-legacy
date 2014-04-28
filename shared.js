@@ -1,5 +1,14 @@
 // Shared object
 
+var util = require('util');
+var cache = require('memory-cache');
+var config = require('config');
+var conn = require('starmutt');
+var n3util = require('n3').Util;
+var _ = require('lodash');
+
+var cacheLifetime = config.cacheLifetime;
+
 var shared = module.exports;
 
 shared.rdfNS = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
@@ -18,6 +27,80 @@ shared.context = shared.prefixes = {
   'geo': shared.geoNS,
   'qb': shared.qbNS,
   'bm': shared.bmNS
+}
+
+shared.getInferredTypes = function(uri, callback) {
+  // Search cache
+  var cacheEntry = cache.get('resolvedTypes:' + uri);
+  if (cacheEntry) {
+    return callback(err, cacheEntry);
+  }
+
+  var query = util.format('select ?type where { <%s> a ?type }', uri);
+  conn.getColValues({ query: query, reasoning: 'QL' }, function(err, resolvedTypes) {
+    if (err) {
+      return callback(err);
+    }
+
+    cache.put('resolvedTypes:' + uri, resolvedTypes, cacheLifetime);
+    return callback(null, resolvedTypes);
+  });
+}
+
+shared.handleOntologyRequest = function(req, res, next) {
+  var hitCache = this.hitCache;
+  var typesToMatch = this.typesToMatch;
+
+  var uri = req.resourceURI;
+  if (!uri) {
+    return next('route');
+  }
+  if (hitCache.indexOf(uri) !== -1) {
+    return next(); // In cache, carry on
+  }
+
+  return shared.getInferredTypes(uri, function(err, resolvedTypes) {
+    if (err) {
+      return next(err);
+    }
+
+    // Search for a match
+    for (var i = 0; i < typesToMatch.length; i++) {
+      var classURI = typesToMatch[i];
+      if (resolvedTypes.indexOf(classURI) !== -1) {
+        hitCache.push(uri);
+        return next();
+      }
+    }
+
+    // Not found, next route please
+    return next('route');
+  });
+}
+
+shared.ontologyMiddleware = function() {
+  var hitCache = [];
+  var ontologyRouterCaches = cache.get('ontologyRouterCaches');
+  if (!ontologyRouterCaches) {
+    cache.put('ontologyRouterCaches', [hitCache]);
+  }
+  else {
+    ontologyRouterCaches.push(hitCache);
+    cache.put('ontologyRouterCaches', ontologyRouterCaches);
+  }
+
+  var typesToMatch = _.map(arguments, function(type) {
+    if (n3util.isQName(type)) {
+      return n3util.expandQName(type, shared.context);
+    }
+
+    return type;
+  });
+
+  return shared.handleOntologyRequest.bind({
+    hitCache: hitCache,
+    typesToMatch: typesToMatch
+  });
 }
 
 shared.getLdValue = function(ldObj) {

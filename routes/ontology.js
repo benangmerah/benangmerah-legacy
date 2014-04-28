@@ -18,6 +18,8 @@ var ontologyDefinition = 'https://raw.githubusercontent.com/benangmerah/ontology
 var router = express.Router();
 module.exports = router;
 
+var forOntClass = shared.ontologyMiddleware;
+
 function derefOntology(req, res, next) {
   res.redirect(303, ontologyDefinition);
 }
@@ -32,70 +34,6 @@ function describeInternalResource(req, res, next) {
 function describeExternalResource(req, res, next) {
   req.resourceURI = req.params.resourceURI;
   next();
-}
-
-function ontology() {
-  if (_.isEmpty(arguments)) {
-    return function ontologyRequestOnly(req, res, next) {
-      if (!req.resourceURI) {
-        return next('route');
-      }
-
-      return next();
-    }
-  }
-
-  var hits = []; // Array of resourceURIs that will match this route
-  var typesToMatch = _.map(arguments, function(type) {
-    if (n3util.isQName(type)) {
-      return n3util.expandQName(type, shared.context);
-    }
-
-    return type;
-  });
-
-  return function handleOntologyRequest(req, res, next) {
-    var uri = req.resourceURI;
-    if (!uri) {
-      return next('route');
-    }
-    if (hits.indexOf(uri) !== -1) {
-      return next(); // In cache, carry on
-    }
-
-    function resolveTypes(callback) {
-      var query = util.format('select ?type where { <%s> a ?type }', uri);
-      conn.getColValues({ query: query, reasoning: 'QL' }, function(err, resolvedTypes) {
-        if (err) {
-          return next(err);
-        }
-
-        cache.put('resolvedTypes:' + uri, resolvedTypes, lifetime);
-        return callback(resolvedTypes);
-      });
-    }
-
-    function callMatchingRoute(resolvedTypes) {
-      for (var i = 0; i < typesToMatch.length; i++) {
-        var classURI = typesToMatch[i];
-        if (resolvedTypes.indexOf(classURI) !== -1) {
-          hits.push(uri);
-          return next();
-        }
-      }
-
-      // Not found, next route please
-      return next('route');
-    }
-
-    var cachedResolvedTypes = cache.get('resolvedTypes:' + uri);
-    if (cachedResolvedTypes) {
-      return callMatchingRoute(cachedResolvedTypes);
-    }
-    else {
-      return resolveTypes(callMatchingRoute);
-    }
-  }
 }
 
 function describeProvinsi(req, res, next) {
@@ -326,7 +264,7 @@ router.all('/ontology/*', derefOntology);
 router.all('/place/*', describeInternalResource);
 router.all('/resource/:resourceURI', describeExternalResource);
 
-router.all('*', ontology('bm:Place'), describePlace);
-router.all('*', ontology('qb:DataSet'), describeDataset);
-router.all('*', ontology('owl:Thing'), describeThing);
-router.all('*', ontology(), sameAsFallback);
+router.all('*', forOntClass('bm:Place'), describePlace);
+router.all('*', forOntClass('qb:DataSet'), describeDataset);
+router.all('*', forOntClass('owl:Thing'), describeThing);
+router.all('*', forOntClass(), sameAsFallback);
