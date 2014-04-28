@@ -37,9 +37,13 @@ p {
   font-weight: 300;
 }
 .site-header {
-  padding: 30px 0;
+  padding: 15px 0;
   border-bottom: 1px solid @gray-lighter;
   background: #fff;
+
+  @media (min-width: @screen-sm-min) {
+    padding: 30px 0;
+  }
 
   h1 {
     .container-responsive();
@@ -104,13 +108,18 @@ body > .content {
   .positioning {
     font-family: @font-family-accent;
     font-weight: 300;
-    font-size: 36px;
+    font-size: 30px;
     line-height: 1.15;
-    padding: 45px 15px;
+    padding: 30px 15px;
     margin: -30px -15px 30px;
     border-bottom: 1px solid @gray-lighter;
     .narrow-kerning();
     color: @gray-light;
+
+    @media (min-width: @screen-sm-min) {
+      font-size: 36px;
+      padding: 45px 15px;
+    }
   }
   .positioning em {
     font-weight: 500;
@@ -126,11 +135,22 @@ body > .content {
   .province-browser ul {
     list-style: none;
     padding: 0;
-    font-size: 1.2 * @font-size-large;
-    -webkit-column-count: 3; /* Chrome, Safari, Opera */
-    -moz-column-count: 3; /* Firefox */
     column-count: 3;
-    font-weight: 300;
+
+    font-size: 1.2 * @font-size-base;
+    @media (min-width: (@screen-sm-min * 0.66)) {
+      .content-columns(2);
+    }
+    @media (min-width: @screen-sm-min) {
+      .content-columns(3);
+    }
+    @media (min-width: @screen-md-min) {
+      font-size: @font-size-large;
+      font-weight: 300;
+    }
+    @media (min-width: @screen-lg-min) {
+      font-size: 1.2 * @font-size-large;
+    }
   }
   .intro {
     .make-row();
@@ -191,7 +211,17 @@ body > .content {
 
 #map-canvas {
   position: relative;
-  height: 500px;
+  height: 150px;
+
+  @media (min-width: @screen-sm-min) {
+    height: 210px;
+  }
+  @media (min-width: @screen-md-min) {
+    height: 300px;
+  }
+  @media (min-width: @screen-lg-min) {
+    height: 360px;
+  }
 }
 
 .content.map {
@@ -348,7 +378,11 @@ body > .content {
         list-style: none;
 
         li {
-          margin: 5px 0;
+          margin: 0 0 5px;
+        }
+
+        @media (min-width: (@screen-sm-min * 0.6)) and (max-width: @screen-sm-max) {
+          .content-columns(2);
         }
       }
     }
