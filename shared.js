@@ -103,7 +103,7 @@ shared.ontologyMiddleware = function() {
   });
 }
 
-shared.getLdValue = function(ldObj) {
+shared.getLdValue = function(ldObj, altAttr) {
   if (typeof ldObj == 'string') {
     return ldObj;
   }
@@ -111,6 +111,12 @@ shared.getLdValue = function(ldObj) {
   if (ldObj['@value']) {
     return ldObj['@value'];
   }
+
+  if (altAttr === true && ldObj['@id']) {
+    return ldObj['@id'];
+  }
+
+  return undefined;
 }
 
 shared.getDescriptionPath = function(resourceURI) {
@@ -131,6 +137,9 @@ shared.getPreferredLabel = function(jsonLdResource) {
   }
   else if (jsonLdResource[shared.rdfsNS + 'label']) {
     var labels = jsonLdResource[shared.rdfsNS + 'label'];
+  }
+  else if (jsonLdResource['@id']) {
+    return shared.getPropertyName(jsonLdResource['@id']);
   }
   else {
     return '';
@@ -159,15 +168,11 @@ shared.getPreferredLabel = function(jsonLdResource) {
     }
   })
 
-  if (!preferredLabel && jsonLdResource['@id']) {
-    preferredLabel = shared.getPropertyName(jsonLdResource['@id']);
-  }
-
   return preferredLabel;
 }
 
 shared.getPropertyName = function(propertyName) {
-  var delimiters = [':', '#', '/'];
+  var delimiters = ['#', '/', ':'];
 
   for (var i = 0; i < delimiters.length; ++i) {
     var delimiter = delimiters[i];
