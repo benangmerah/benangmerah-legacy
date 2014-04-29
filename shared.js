@@ -6,6 +6,9 @@ var config = require('config');
 var conn = require('starmutt');
 var n3util = require('n3').Util;
 var _ = require('lodash');
+var traverse = require('traverse');
+var jsonld = require('jsonld');
+var async = require('async');
 
 var cacheLifetime = config.cacheLifetime;
 
@@ -33,7 +36,7 @@ shared.getInferredTypes = function(uri, callback) {
   // Search cache
   var cacheEntry = cache.get('resolvedTypes:' + uri);
   if (cacheEntry) {
-    return callback(err, cacheEntry);
+    return callback(null, cacheEntry);
   }
 
   var query = util.format('select ?type where { <%s> a ?type }', uri);
@@ -181,4 +184,265 @@ shared.getPropertyName = function(propertyName) {
       return propertyName.substring(index + 1);
     }
   }
+}
+
+shared.ldIsA = function(ldObj, typeToMatch) {
+  return _.contains(ldObj['@type'], typeToMatch);
+}
+
+// This function below is quite useful!
+shared.pointerizeGraph = function(graph) {
+  var resourceMap = {};
+
+  traverse(graph).forEach(function(resource) {
+    var id = resource['@id'];
+    if (id && _.size(resource) > _.size(resourceMap[id])) {
+      resourceMap[id] = resource;
+    }
+  });
+
+  traverse(graph).forEach(function(resource) {
+    var self = this;
+    var id = resource['@id'];
+    if (id && resourceMap[id] && resource !== resourceMap[id]) {
+      self.delete();
+      self.update(resourceMap[id], true);
+    }
+  });
+
+  return graph;
+}
+
+// Return: JSON-LD datasets according to conditions
+shared.getDatacube = function(conditions, fixedProperties, callback) {
+  if (arguments.length == 2) {
+    var callback = arguments[1];
+    var fixedProperties = [];
+    var automaticFilter = true;
+  }
+  else if (_.isString(fixedProperties)) {
+    fixedProperties = [fixedProperties];
+  }
+
+  var conditionsString = "";
+  var graph = {};
+  var datasets = [];
+  var dsds = {};
+  var dimensionProperties = {};
+  var measureProperties = {};
+  var observations = [];
+
+  function generateConditionsString(callback) {
+    if (_.isString(conditions)) {
+      conditionsString = conditions;
+      return callback();
+    }
+
+    if (automaticFilter) {
+      fixedProperties = _.keys(conditions);
+    }
+
+    // get conditions.observation and conditions.dataset
+    var context = _.extend({ dataset: "qb:dataSet" }, shared.context);
+    conditions['@context'] = _.extend(context, conditions['@context']);
+    conditions['@id'] = 'tag:sparql-param:?observation';
+    jsonld.normalize(conditions, {format:'application/nquads'},
+      function(err, string) {
+        if (err) {
+          return callback(err);
+        }
+        string = string.replace(/<tag:sparql-param:\?observation>/g, '?observation');
+        conditionsString = string;
+        callback();
+      });
+  }
+
+  function execDatacubeQuery(callback) {
+    var query = util.format('\
+      construct { \n\
+        ?dataset ?datasetP ?datasetO. \n\
+        ?dataset qb:structure ?dsd. \n\
+        ?dsd qb:component ?component. \n\
+        ?component ?componentP ?componentO. \n\
+        ?dsd a qb:DataStructureDefinition. \n\
+        ?observation qb:dataSet ?dataset. \n\
+        ?observation ?observationP ?observationO. \n\
+        ?observation a qb:Observation. \n\
+        ?property a ?propertyType. \n\
+        ?property rdfs:label ?propertyLabel. \n\
+      } where { \n\
+        ?dataset a qb:DataSet. \n\
+        ?dataset ?datasetP ?datasetO. \n\
+        ?observation qb:dataSet ?dataset. \n\
+        ?dsd a qb:DataStructureDefinition. \n\
+        ?dataset qb:structure ?dsd. \n\
+        ?dsd qb:component ?component. \n\
+        ?component ?componentP ?componentO. \n\
+        { { ?component qb:dimension ?property } union { ?component qb:measure ?property } }. \n\
+        ?component qb:order ?order. \n\
+        ?property a ?propertyType. \n\
+        ?property rdfs:label ?propertyLabel. \n\
+        ?observation a qb:Observation. \n\
+        ?observation qb:dataSet ?dataset. \n\
+        ?observation ?observationP ?observationO. \n\
+        { {?observationP a qb:DimensionProperty} union {?observationP a qb:MeasureProperty} }. \n\
+        %s # CONDITIONS GO HERE \n\
+      } \n\
+      ', conditionsString);
+
+    // console.log(query);
+    conn.getGraph({ query: query, context: shared.context, form: 'compact' }, function(err, data) {
+      if (err) {
+        return callback(err);
+      }
+
+      shared.pointerizeGraph(data);
+      graph = data['@graph'];
+
+      // console.log(graph);
+
+      if (!graph) {
+        // console.log('Graph is empty');
+        return callback('empty_graph');
+      }
+
+      return callback();
+    });
+  }
+
+  function siftGraph(callback) {
+    // console.log('Sifting graph...');
+    var isA = shared.ldIsA;
+
+    graph.forEach(function(resource) {
+      var id = resource['@id'];
+      var type = resource['@type'];
+      // console.log('%s a %s', resource['@id'], type);
+      // console.log('fixed = %j', _.contains(fixedProperties, id));
+      if (isA(resource, 'qb:DataSet')) {
+        datasets.push(_.clone(resource));
+      }
+      else if (isA(resource, 'qb:DataStructureDefinition')) {
+        dsds[id] = resource;
+      }
+      else if (isA(resource, 'qb:DimensionProperty')) {
+        dimensionProperties[id] = resource;
+      }
+      else if (isA(resource, 'qb:MeasureProperty')) {
+        measureProperties[id] = resource;
+      }
+      else if (isA(resource, 'qb:Observation')) {
+        observations.push(resource);
+      }
+    });
+
+    async.map(datasets, processDataset, callback);
+  }
+
+  function processDataset(dataset, callback) {
+    // console.log('Processing dataset...');
+    // Generate dataset.dimensions, dataset.measures
+    
+    // An ordered array of the dataset's dimensions, according to its DSD
+    dataset.dimensions = [];
+
+    // An ordered array of the dataset's measures, according to its DSD
+    dataset.measures = [];
+
+    var dsd = dataset['qb:structure'];
+
+    var components = dsd['qb:component'];
+    if (_.isArray(components)) {
+      components = _.sortBy(dsd['qb:component'], function(component) {
+        return shared.getLdValue(component['qb:order']);
+      });
+    }
+    else {
+      components = [components];
+    }
+
+    components.forEach(function(component) {
+      if (component['qb:dimension']) {
+        var id = component['qb:dimension']['@id'];
+        if (_.contains(fixedProperties, id)) {
+          return;
+        }
+        // Clone because we are adding some properties that are not relevant
+        // outside of the datacube
+        dataset.dimensions.push(_.clone(component['qb:dimension']));
+      }
+      else if (component['qb:measure']) {
+        var id = component['qb:measure']['@id'];
+        if (_.contains(fixedProperties, id)) {
+          return;
+        }
+        // Clone because we are adding some properties that are not relevant
+        // outside of the datacube
+        dataset.measures.push(_.clone(component['qb:measure']));
+      }
+    });
+
+    dataset.observations = _.filter(observations, function(observation) {
+      return observation['qb:dataSet']['@id'] === dataset['@id'];
+    });
+
+    // Generate dataset.datacube
+    // dataset.datacube is an n-dimensional array
+    // datacube[dimension1][dimension2][..dimensionN]
+    //    [measure] = [measureValue]
+
+    dataset.datacube = {};
+    var nDimensions = dataset.dimensions.length;
+
+    dataset.observations.forEach(function(observation) {
+      var cursor = dataset.datacube;
+      var path = [];
+      dataset.dimensions.forEach(function(dimension, idx) {
+        var dimensionId = dimension['@id'];
+        // console.log('Walking: %s', dimensionId);
+        var obsDimValue = observation[dimensionId];
+        var nextIndex = '';
+        if (_.isEmpty(obsDimValue)) {
+          return;
+        }
+
+        if (_.isUndefined(dimension.values)) {
+          dimension.values = [];
+        }
+        if (!_.contains(dimension.values, obsDimValue)) {
+          dimension.values.push(obsDimValue);
+        }
+
+        nextIndex = shared.getLdValue(obsDimValue, true);
+        path.push(nextIndex);
+
+        if (_.isUndefined(cursor[nextIndex])) {
+          cursor[nextIndex] = {};
+        }
+        cursor = cursor[nextIndex];
+      });
+
+      // console.log(path.join(' / '));
+      dataset.measures.forEach(function(measure) {
+        var measureId = measure['@id'];
+        cursor[measureId] = observation[measureId];
+        // console.log('%s: %s', measureId, observation[measureId]);
+      });
+    });
+
+    callback(null, dataset);
+  }
+
+  // console.log('Datacube starting...');
+  async.series([generateConditionsString, execDatacubeQuery, siftGraph],
+    function(err) {
+      // console.log('Datacube finished.');
+      if (err === 'empty_graph') {
+        return callback(null, []);
+      }
+      if (err) {
+        return callback(err);
+      }
+      return callback(null, datasets);
+    });
 }

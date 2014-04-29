@@ -1,7 +1,9 @@
 // helpers
 // All members of module.exports will be registered as a hbs helper
 
+var traverse = require('traverse');
 var _ = require('lodash');
+
 var shared = require('./shared');
 var Handlebars = require('hbs').handlebars;
 
@@ -137,4 +139,90 @@ helpers.link = function(text, options) {
 
 helpers.trim = function(text) {
   return text.trim();
+}
+
+helpers.datacubeTable = function(dataset, options) {
+  if (arguments.length == 1) {
+    var options = dataset;
+    var dataset = this;
+  }
+
+  var getLabel = shared.getPreferredLabel;
+  var getValue = shared.getLdValue;
+  // Columns: dimensions, using colspan
+  // First column: Measurement
+  // Output: table
+
+  if (options) {
+    var hash = options.hash || {};
+    if (hash.defaultHeader) {
+      var defaultHeader = hash.defaultHeader;
+      delete hash.defaultHeader;
+    }
+    if (hash.dimensionLabels) {
+      var dimensionLabels = hash.dimensionLabels;
+      delete hash.dimensionLabels;
+    }
+  }
+
+  var output = '<table';
+  if (options && !_.isEmpty(options.hash)) {
+    _.forIn(options.hash, function(value, attr) {
+      output += ' ' + attr + '=' + '"' + value + '"';
+    });
+  }
+  output += '>';
+
+  // Header
+  var dimensions = dataset.dimensions;
+
+  output += '\n  <thead>';
+  dimensions.forEach(function(dimension, idx) {
+    var values = dimension.values;
+
+    var nextDimension = dimensions[idx + 1];
+    if (nextDimension) {
+      var colSpan = nextDimension.values.length;
+    }
+    else {
+      var colSpan = "1";
+    }
+
+    var firstColumn = dimensionLabels ? getLabel(dimension) : '';
+
+    output += '\n    <tr>';
+    output += '\n      <th>' + firstColumn + '</th>';
+    // console.log(values);
+    values.forEach(function(value) {
+      output += '\n      <th colspan="' + colSpan + '">' + helpers.ldObject(value) + '</th>';
+    });
+    output += '\n    </tr>';
+  });
+  output += '\n  </thead>';
+
+  // Body
+  var measures = dataset.measures;
+
+  output += '\n  <tbody>';
+  measures.forEach(function(measure, idx) {
+    var measureId = measure['@id'];
+    var measureLabel = getLabel(measure);
+    var cursor = dataset.datacube;
+
+    output += '\n    <tr>';
+    output += '\n      <th>' + measureLabel + '</th>';
+    traverse(dataset.datacube).forEach(function() {
+      if (this.level === dimensions.length) {
+        var text = helpers.ldObject(this.node[measureId]);
+        output += '\n      <td>' + text + '</td>';
+      }
+    });
+    output += '\n    </tr>';
+  })
+  output += '\n  </tbody>';
+
+  // End table
+  output += '\n</table>';
+
+  return new Handlebars.SafeString(output);
 }
