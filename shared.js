@@ -291,7 +291,10 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
       ', conditionsString);
 
     // console.log(query);
+    var start = _.now();
     conn.getGraph({ query: query, context: shared.context, form: 'compact' }, function(err, data) {
+      var end = _.now();
+      console.log('Query took %d msecs.', end - start);
       if (err) {
         return callback(err);
       }

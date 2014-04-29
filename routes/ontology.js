@@ -26,6 +26,7 @@ function derefOntology(req, res, next) {
 
 function describeInternalResource(req, res, next) {
   var originalUrl = req.originalUrl;
+  originalUrl = originalUrl.split('?')[0];
   req.resourceURI = 'http://benangmerah.net' + originalUrl;
   req.url = req.resourceURI;
   next();
@@ -122,8 +123,11 @@ function describePlace(req, res, next) {
        // TODO add language filter
        req.resourceURI, req.resourceURI);
 
+    var start = _.now();
     conn.getResultsValues({ query: statsQuery, reasoning: 'QL' },
       function(err, data) {
+              var end = _.now();
+      console.log('Legacy query took %d msecs.', end - start);
         if (err) {
           return callback(err);
         }
@@ -131,6 +135,21 @@ function describePlace(req, res, next) {
           parseStats(data, callback)
         }
       });
+  }
+
+  function getDatacubes(callback) {
+    var condition = util.format(
+      '?observation bm:refArea ?x. { { ?x owl:sameAs <%s>. } union { <%s> owl:sameAs ?x. } }',
+      req.resourceURI, req.resourceURI);
+
+    shared.getDatacube(condition, ['bm:refArea'], function(err, datasets) {
+      if (err) {
+        return console.log(err);
+      }
+
+      vars.qbDatasets = datasets;
+      callback();
+    })
   }
 
   function parseStats(rows, callback) {
@@ -162,6 +181,7 @@ function describePlace(req, res, next) {
   }
 
   function render(err) {
+    console.log('Rendering..');
     if (err) {
       return next(err);
     }
@@ -171,7 +191,12 @@ function describePlace(req, res, next) {
     }));
   }
 
-  async.series([execDescribeQuery, getParent, getChildren, getStats], render);
+  if (req.query.legacy) {
+    async.series([execDescribeQuery, getParent, getChildren, getStats], render);
+  }
+  else {
+    async.series([execDescribeQuery, getParent, getChildren, getDatacubes], render);
+  }
 }
 
 function describeDataset(req, res, next) {
@@ -187,7 +212,19 @@ function describeDataset(req, res, next) {
     });
   }
 
-  function render(err, data) {
+  function execDatacubeQuery(data, callback) {
+    shared.getDatacube('', function(err, datasets) {
+      if (err) {
+        callback(err);
+      }
+      else {
+        console.log(datasets);
+        callback(null, data, datasets);
+      }
+    })
+  }
+
+  function render(err, data, datasets) {
     if (err) {
       return next(err)
     }
@@ -199,11 +236,12 @@ function describeDataset(req, res, next) {
 
     res.render('ontology/dataset', {
       title: title,
-      resource: resource
+      resource: resource,
+      datasets: datasets
     });
   }
 
-  async.waterfall([execDescribeQuery], render);
+  async.waterfall([execDescribeQuery, execDatacubeQuery], render);
 }
 
 function describeThing(req, res, next) {

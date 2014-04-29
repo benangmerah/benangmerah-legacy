@@ -30,6 +30,21 @@
 				</table>
 			</div>
 		</div>
+		<div>
+			{{#ifCollection datasets}}
+			<section class="infobox-collection">
+				{{#each datasets}}
+				<section class="infobox">
+					<h4>{{preferredLabel}}</h4>
+					{{datacubeTable class="table table-striped table-bordered"}}
+					<footer>
+						<address class="source">Sumber: {{descriptionLink [@id]}}</address>
+					</footer>
+				</section>
+				{{/each}}
+			</section>
+			{{/ifCollection}}
+		</div>
 	</article>
 	{{/with}}
 </div>
