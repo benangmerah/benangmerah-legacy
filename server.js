@@ -46,7 +46,7 @@ for (var helper in helpers) {
 
 app.engine('handlebars', hbs.__express);
 app.set('view engine', 'hbs');
-app.set('view options', { layout: 'layouts/main' })
+app.set('view options', { layout: 'layouts/main' });
 
 // express: middleware before routing
 app.use(favicon());
@@ -57,7 +57,7 @@ app.use('/css', lessMiddleware(
   __dirname + '/src/less',
   { dest: __dirname + '/public/css', force: (app.get('env') === 'development') },
   {},
-  { compress: !('development' == app.get('env')) }
+  { compress: ('development' !== app.get('env')) }
 ));
 app.use(serveStatic(__dirname + '/public'));
 
