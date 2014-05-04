@@ -212,18 +212,6 @@ function describeDataset(req, res, next) {
     });
   }
 
-  function execDatacubeQuery(data, callback) {
-    shared.getDatacube('', function(err, datasets) {
-      if (err) {
-        callback(err);
-      }
-      else {
-        console.log(datasets);
-        callback(null, data, datasets);
-      }
-    })
-  }
-
   function render(err, data, datasets) {
     if (err) {
       return next(err)
@@ -241,7 +229,7 @@ function describeDataset(req, res, next) {
     });
   }
 
-  async.waterfall([execDescribeQuery, execDatacubeQuery], render);
+  async.waterfall([execDescribeQuery], render);
 }
 
 function describeThing(req, res, next) {

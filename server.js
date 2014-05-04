@@ -20,7 +20,8 @@ var errorHandler = require('errorhandler');
 // local express-related modules
 var helpers = require('./helpers');
 var routes = require('./routes');
-var ontologyRouter = require('./routes/ontology');
+var ontologyRoutes = require('./routes/ontology');
+var dataManager = require('./routes/data-manager');
 
 // CONFIG INIT ---
 if (!config.port) {
@@ -62,7 +63,8 @@ app.use(serveStatic(__dirname + '/public'));
 
 // app router
 app.use(routes);
-app.use(ontologyRouter);
+app.use('/data-manager', dataManager);
+app.use(ontologyRoutes);
 
 // express: error handler
 if ('development' == app.get('env')) {

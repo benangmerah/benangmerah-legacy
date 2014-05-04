@@ -26,9 +26,25 @@
 .narrow-kerning {
   letter-spacing: -0.04em;
 }
+.page-header() {
+  padding: 45px 15px;
+  margin: -30px -15px 30px;
+  border-bottom: 1px solid @gray-lighter;
+
+  h2, h1:first-child:last-child {
+    .h1;
+    color: #000;
+    margin: 0;
+    font-weight: 300;
+  }
+  h1 {
+    .h4;
+    color: @gray-light;
+    margin: 0 0 5px 0;
+  }
+}
 
 // Non-bootstrap styles
-// @import url(http://fonts.googleapis.com/css?family=Roboto:500,500italic);
 
 body {
   // background: #f9f9f9;
@@ -240,21 +256,7 @@ body > .content {
 .content.activity {
   article.activity {
     & > header {
-      padding: 45px 15px;
-      margin: -30px -15px 30px;
-      border-bottom: 1px solid @gray-lighter;
-
-      h1 {
-        .h4;
-        color: @gray-light;
-        margin: 0 0 5px 0;
-      }
-      h2 {
-        .h1;
-        color: #000;
-        margin: 0;
-        font-weight: 300;
-      }
+      .page-header();
     }
 
     .details-wrapper {
@@ -387,4 +389,8 @@ body > .content {
       }
     }
   }
+}
+
+.content > header {
+  .page-header();
 }

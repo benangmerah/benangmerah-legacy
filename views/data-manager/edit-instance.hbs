@@ -1,0 +1,30 @@
+<div class="content">
+	<header>
+		<h1>Data Manager</h1>
+		<h2>{{#is mode 'create'}}Create{{else}}Edit{{/is}} Driver Instance</h2>
+	</header>
+	{{#is error 'form_invalid'}}
+	{{#ifCollection formErrors}}
+	<div class="alert alert-danger">
+		<h4>Form did not validate</h4>
+		<ul>
+		{{#each formErrors}}
+			<li>{{this}}</li>
+		{{/each}}
+		</ul>
+	</div>
+	{{/ifCollection}}
+	{{/is}}
+
+	{{#is error 'not_found'}}
+	<div class="alert alert-danger">
+		<strong>Error!</strong> The instance you were looking for does not exist.
+	</div>
+	{{/is}}
+
+	{{#isnt error 'not_found'}}
+	<form class="form form-horizontal" action="/data-manager/instance/edit/{{encodeURI [@id]}}" method="POST">
+	{{> instance_form}}
+	</form>
+	{{/isnt}}
+</div>

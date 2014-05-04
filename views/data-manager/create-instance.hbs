@@ -1,0 +1,26 @@
+<div class="content">
+	<header>
+		<h1>Data Manager</h1>
+		<h2>Create Driver Instance</h2>
+	</header>
+	{{#ifCollection formErrors}}
+	<div class="alert alert-danger">
+		<h4>Form did not validate</h4>
+		<ul>
+		{{#each formErrors}}
+			<li>{{this}}</li>
+		{{/each}}
+		</ul>
+	</div>
+	{{else}}
+	{{#if error}}
+	<div class="alert alert-danger">
+		<strong>Error!</strong> {{error}}
+	</div>
+	{{/if}}
+	{{/ifCollection}}
+
+	<form class="form form-horizontal" action="/data-manager/instance/create" method="POST">
+	{{> instance_form}}
+	</form>
+</div>

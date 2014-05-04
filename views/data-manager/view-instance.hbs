@@ -1,0 +1,26 @@
+<div class="content">
+	<header>
+		<h1>Data Manager</h1>
+		<h2>View Instance</h2>
+	</header>
+
+	<h2>{{rdfs:label}}</h2>
+	<p>
+		<a class="btn btn-default pull-left" href="/data-manager/instance/edit/{{encodeURI [@id]}}">Edit</a>
+		<form action="/data-manager/instance/fetch/{{encodeURI [@id]}}" method="POST" class="form-inline pull-left">
+			<button type="submit" class="btn btn-default">Fetch</button>
+		</form>
+		<form action="/data-manager/instance/clear/{{encodeURI [@id]}}" method="POST" class="form-inline pull-left">
+			<button type="submit" class="btn btn-warning">Clear</button>
+		</form>
+		<form action="/data-manager/instance/delete/{{encodeURI [@id]}}" method="POST" class="form-inline pull-left">
+			<button type="submit" class="btn btn-danger">Delete</button>
+		</form>
+	</p>
+
+	<br clear="all">
+
+	{{#markdown}}{{rdfs:comment}}{{/markdown}}
+
+ 	{{log this}}
+ </div>

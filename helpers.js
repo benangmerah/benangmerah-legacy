@@ -1,6 +1,7 @@
 // helpers
 // All members of module.exports will be registered as a hbs helper
 
+var entities = require('entities');
 var traverse = require('traverse');
 var _ = require('lodash');
 
@@ -225,4 +226,77 @@ helpers.datacubeTable = function(dataset, options) {
   output += '\n</table>';
 
   return new Handlebars.SafeString(output);
+}
+
+helpers.input = function(property, options) {
+  var hash = (options && options.hash) || {};
+  var attrs = [];
+  for (var prop in hash) {
+    attrs.push(prop + '="' + hash[prop] + '"');
+  }
+
+  attrs.push('name="' + property + '"');
+  if (_.isString(this[property])) {
+    attrs.push('value="' + entities.encodeHTML(this[property]) + '"');
+  }
+
+  return new Handlebars.SafeString('<input ' + attrs.join(' ') + '>');
+}
+
+helpers.textarea = function(property, options) {
+  var hash = (options && options.hash) || {};
+  var attrs = [];
+  for (var prop in hash) {
+    attrs.push(prop + '="' + hash[prop] + '"');
+  }
+
+  attrs.push('name="' + property + '"');
+
+  var value = '';
+  if (_.isString(this[property])) {
+    value = entities.encodeHTML(this[property]);
+  }
+
+  return new Handlebars.SafeString('<textarea ' + attrs.join(' ') + '>' + value + '</textarea>');
+}
+
+helpers.select = function(property, choices, options) {
+  var self = this;
+  var hash = (options && options.hash) || {};
+  var attrs = [];
+  for (var prop in hash) {
+    attrs.push(prop + '="' + hash[prop] + '"');
+  }
+
+  attrs.push('name="' + property + '"');
+
+  var options = '';
+  if (_.isArray(choices)) {
+    _.forEach(choices, function(value) {
+      options += '<option value="';
+      options += entities.encodeHTML(value) + '"';
+
+      if (self[property] == value) {
+        options += ' selected';
+      }
+
+      options += '>' + entities.encodeHTML(value);
+      options += '</options>';
+    });
+  }
+  else if (_.isObject(choices)) {
+    _.forIn(choices, function(label, value) {
+      options += '<option value="';
+      options += entities.encodeHTML(value) + '"';
+
+      if (self[property] == value) {
+        options += ' selected';
+      }
+
+      options += '>' + entities.encodeHTML(label);
+      options += '</options>';
+    });
+  }
+
+  return new Handlebars.SafeString('<select ' + attrs.join(' ') + '>' + options + '</select>');
 }
