@@ -14,22 +14,22 @@ var cacheLifetime = config.cacheLifetime;
 
 var shared = module.exports;
 
-shared.rdfNS = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
-shared.rdfsNS = 'http://www.w3.org/2000/01/rdf-schema#';
-shared.owlNS = 'http://www.w3.org/2002/07/owl#';
-shared.xsdNS = 'http://www.w3.org/2001/XMLSchema#';
-shared.geoNS = 'http://www.w3.org/2003/01/geo/wgs84_pos#';
-shared.qbNS = 'http://purl.org/linked-data/cube#';
-shared.bmNS = 'http://benangmerah.net/ontology/';
+shared.RDF_NS = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+shared.RDFS_NS = 'http://www.w3.org/2000/01/rdf-schema#';
+shared.OWL_NS = 'http://www.w3.org/2002/07/owl#';
+shared.XSD_NS = 'http://www.w3.org/2001/XMLSchema#';
+shared.GEO_NS = 'http://www.w3.org/2003/01/geo/wgs84_pos#';
+shared.QB_NS = 'http://purl.org/linked-data/cube#';
+shared.BM_NS = 'http://benangmerah.net/ontology/';
 
 shared.context = shared.prefixes = {
-  'rdf': shared.rdfNS,
-  'rdfs': shared.rdfsNS,
-  'owl': shared.owlNS,
-  'xsd': shared.xsdNS,
-  'geo': shared.geoNS,
-  'qb': shared.qbNS,
-  'bm': shared.bmNS
+  'rdf': shared.RDF_NS,
+  'rdfs': shared.RDFS_NS,
+  'owl': shared.OWL_NS,
+  'xsd': shared.XSD_NS,
+  'geo': shared.GEO_NS,
+  'qb': shared.QB_NS,
+  'bm': shared.BM_NS
 };
 
 shared.getInferredTypes = function(uri, callback) {
@@ -40,14 +40,15 @@ shared.getInferredTypes = function(uri, callback) {
   }
 
   var query = util.format('select ?type where { <%s> a ?type }', uri);
-  conn.getColValues({ query: query, reasoning: 'QL' }, function(err, resolvedTypes) {
-    if (err) {
-      return callback(err);
-    }
+  conn.getColValues(
+    { query: query, reasoning: 'QL' }, function(err, resolvedTypes) {
+      if (err) {
+        return callback(err);
+      }
 
-    cache.put('resolvedTypes:' + uri, resolvedTypes, cacheLifetime);
-    return callback(null, resolvedTypes);
-  });
+      cache.put('resolvedTypes:' + uri, resolvedTypes, cacheLifetime);
+      return callback(null, resolvedTypes);
+    });
 };
 
 shared.handleOntologyRequest = function(req, res, next) {
@@ -139,8 +140,8 @@ shared.getPreferredLabel = function(jsonLdResource) {
   if (jsonLdResource['rdfs:label']) {
     labels = jsonLdResource['rdfs:label'];
   }
-  else if (jsonLdResource[shared.rdfsNS + 'label']) {
-    labels = jsonLdResource[shared.rdfsNS + 'label'];
+  else if (jsonLdResource[shared.RDFS_NS + 'label']) {
+    labels = jsonLdResource[shared.RDFS_NS + 'label'];
   }
   else if (jsonLdResource['@id']) {
     return shared.getPropertyName(jsonLdResource['@id']);
@@ -226,7 +227,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
     fixedProperties = [fixedProperties];
   }
 
-  var conditionsString = "";
+  var conditionsString = '';
   var graph = {};
   var datasets = [];
   var dsds = {};
@@ -245,7 +246,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
     }
 
     // get conditions.observation and conditions.dataset
-    var context = _.extend({ dataset: "qb:dataSet" }, shared.context);
+    var context = _.extend({ dataset: 'qb:dataSet' }, shared.context);
     conditions['@context'] = _.extend(context, conditions['@context']);
     conditions['@id'] = 'tag:sparql-param:?observation';
     jsonld.normalize(conditions, {format:'application/nquads'},
@@ -253,7 +254,8 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
         if (err) {
           return callback(err);
         }
-        string = string.replace(/<tag:sparql-param:\?observation>/g, '?observation');
+        string = string.replace(/<tag:sparql-param:\?observation>/g, 
+                                '?observation');
         conditionsString = string;
         callback();
       });
@@ -280,38 +282,42 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
       '  ?dataset qb:structure ?dsd. ' +
       '  ?dsd qb:component ?component. ' +
       '  ?component ?componentP ?componentO. ' +
-      '  { { ?component qb:dimension ?property } union { ?component qb:measure ?property } }. ' +
+      '  { { ?component qb:dimension ?property } ' +
+      '      union { ?component qb:measure ?property } }. ' +
       '  ?component qb:order ?order. ' +
       '  ?property a ?propertyType. ' +
       '  ?property rdfs:label ?propertyLabel. ' +
       '  ?observation a qb:Observation. ' +
       '  ?observation qb:dataSet ?dataset. ' +
       '  ?observation ?observationP ?observationO. ' +
-      '  { {?observationP a qb:DimensionProperty} union {?observationP a qb:MeasureProperty} }. ' +
+      '  { {?observationP a qb:DimensionProperty} ' +
+      '    union {?observationP a qb:MeasureProperty} }. ' +
       '  %s ' + // Conditions
       '} ', conditionsString);
 
     // console.log(query);
     var start = _.now();
-    conn.getGraph({ query: query, context: shared.context, form: 'compact' }, function(err, data) {
-      var end = _.now();
-      console.log('Query took %d msecs.', end - start);
-      if (err) {
-        return callback(err);
-      }
+    conn.getGraph(
+      { query: query, context: shared.context, form: 'compact' },
+      function(err, data) {
+        var end = _.now();
+        console.log('Query took %d msecs.', end - start);
+        if (err) {
+          return callback(err);
+        }
 
-      shared.pointerizeGraph(data);
-      graph = data['@graph'];
+        shared.pointerizeGraph(data);
+        graph = data['@graph'];
 
-      // console.log(graph);
+        // console.log(graph);
 
-      if (!graph) {
-        // console.log('Graph is empty');
-        return callback('empty_graph');
-      }
+        if (!graph) {
+          // console.log('Graph is empty');
+          return callback('empty_graph');
+        }
 
-      return callback();
-    });
+        return callback();
+      });
   }
 
   function siftGraph(callback) {
