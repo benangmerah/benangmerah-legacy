@@ -30,7 +30,7 @@ shared.context = shared.prefixes = {
   'geo': shared.geoNS,
   'qb': shared.qbNS,
   'bm': shared.bmNS
-}
+};
 
 shared.getInferredTypes = function(uri, callback) {
   // Search cache
@@ -48,7 +48,7 @@ shared.getInferredTypes = function(uri, callback) {
     cache.put('resolvedTypes:' + uri, resolvedTypes, cacheLifetime);
     return callback(null, resolvedTypes);
   });
-}
+};
 
 shared.handleOntologyRequest = function(req, res, next) {
   var hitCache = this.hitCache;
@@ -79,7 +79,7 @@ shared.handleOntologyRequest = function(req, res, next) {
     // Not found, next route please
     return next('route');
   });
-}
+};
 
 shared.ontologyMiddleware = function() {
   var hitCache = [];
@@ -104,7 +104,7 @@ shared.ontologyMiddleware = function() {
     hitCache: hitCache,
     typesToMatch: typesToMatch
   });
-}
+};
 
 shared.getLdValue = function(ldObj, altAttr) {
   if (typeof ldObj == 'string') {
@@ -120,7 +120,7 @@ shared.getLdValue = function(ldObj, altAttr) {
   }
 
   return undefined;
-}
+};
 
 shared.getDescriptionPath = function(resourceURI) {
   if (!resourceURI) {
@@ -132,14 +132,15 @@ shared.getDescriptionPath = function(resourceURI) {
   else {
     return '/resource/' + encodeURIComponent(resourceURI);
   }
-}
+};
 
 shared.getPreferredLabel = function(jsonLdResource) {
+  var labels;
   if (jsonLdResource['rdfs:label']) {
-    var labels = jsonLdResource['rdfs:label'];
+    labels = jsonLdResource['rdfs:label'];
   }
   else if (jsonLdResource[shared.rdfsNS + 'label']) {
-    var labels = jsonLdResource[shared.rdfsNS + 'label'];
+    labels = jsonLdResource[shared.rdfsNS + 'label'];
   }
   else if (jsonLdResource['@id']) {
     return shared.getPropertyName(jsonLdResource['@id']);
@@ -169,10 +170,10 @@ shared.getPreferredLabel = function(jsonLdResource) {
     if (labelValue.length > preferredLabel.length) {
       preferredLabel = labelValue;
     }
-  })
+  });
 
   return preferredLabel;
-}
+};
 
 shared.getPropertyName = function(propertyName) {
   var delimiters = ['#', '/', ':'];
@@ -184,11 +185,11 @@ shared.getPropertyName = function(propertyName) {
       return propertyName.substring(index + 1);
     }
   }
-}
+};
 
 shared.ldIsA = function(ldObj, typeToMatch) {
   return _.contains(ldObj['@type'], typeToMatch);
-}
+};
 
 // This function below is quite useful!
 shared.pointerizeGraph = function(graph) {
@@ -211,14 +212,15 @@ shared.pointerizeGraph = function(graph) {
   });
 
   return graph;
-}
+};
 
 // Return: JSON-LD datasets according to conditions
 shared.getDatacube = function(conditions, fixedProperties, callback) {
-  if (arguments.length == 2) {
-    var callback = arguments[1];
-    var fixedProperties = [];
-    var automaticFilter = true;
+  var automaticFilter = false;
+  if (!callback) {
+    callback = fixedProperties;
+    fixedProperties = [];
+    automaticFilter = true;
   }
   else if (_.isString(fixedProperties)) {
     fixedProperties = [fixedProperties];
@@ -258,37 +260,36 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   }
 
   function execDatacubeQuery(callback) {
-    var query = util.format('\
-      construct { \n\
-        ?dataset ?datasetP ?datasetO. \n\
-        ?dataset qb:structure ?dsd. \n\
-        ?dsd qb:component ?component. \n\
-        ?component ?componentP ?componentO. \n\
-        ?dsd a qb:DataStructureDefinition. \n\
-        ?observation qb:dataSet ?dataset. \n\
-        ?observation ?observationP ?observationO. \n\
-        ?observation a qb:Observation. \n\
-        ?property a ?propertyType. \n\
-        ?property rdfs:label ?propertyLabel. \n\
-      } where { \n\
-        ?dataset a qb:DataSet. \n\
-        ?dataset ?datasetP ?datasetO. \n\
-        ?observation qb:dataSet ?dataset. \n\
-        ?dsd a qb:DataStructureDefinition. \n\
-        ?dataset qb:structure ?dsd. \n\
-        ?dsd qb:component ?component. \n\
-        ?component ?componentP ?componentO. \n\
-        { { ?component qb:dimension ?property } union { ?component qb:measure ?property } }. \n\
-        ?component qb:order ?order. \n\
-        ?property a ?propertyType. \n\
-        ?property rdfs:label ?propertyLabel. \n\
-        ?observation a qb:Observation. \n\
-        ?observation qb:dataSet ?dataset. \n\
-        ?observation ?observationP ?observationO. \n\
-        { {?observationP a qb:DimensionProperty} union {?observationP a qb:MeasureProperty} }. \n\
-        %s # CONDITIONS GO HERE \n\
-      } \n\
-      ', conditionsString);
+    var query = util.format(
+      'construct { ' +
+      '  ?dataset ?datasetP ?datasetO. ' +
+      '  ?dataset qb:structure ?dsd. ' +
+      '  ?dsd qb:component ?component. ' +
+      '  ?component ?componentP ?componentO. ' +
+      '  ?dsd a qb:DataStructureDefinition. ' +
+      '  ?observation qb:dataSet ?dataset. ' +
+      '  ?observation ?observationP ?observationO. ' +
+      '  ?observation a qb:Observation. ' +
+      '  ?property a ?propertyType. ' +
+      '  ?property rdfs:label ?propertyLabel. ' +
+      '} where { ' +
+      '  ?dataset a qb:DataSet. ' +
+      '  ?dataset ?datasetP ?datasetO. ' +
+      '  ?observation qb:dataSet ?dataset. ' +
+      '  ?dsd a qb:DataStructureDefinition. ' +
+      '  ?dataset qb:structure ?dsd. ' +
+      '  ?dsd qb:component ?component. ' +
+      '  ?component ?componentP ?componentO. ' +
+      '  { { ?component qb:dimension ?property } union { ?component qb:measure ?property } }. ' +
+      '  ?component qb:order ?order. ' +
+      '  ?property a ?propertyType. ' +
+      '  ?property rdfs:label ?propertyLabel. ' +
+      '  ?observation a qb:Observation. ' +
+      '  ?observation qb:dataSet ?dataset. ' +
+      '  ?observation ?observationP ?observationO. ' +
+      '  { {?observationP a qb:DimensionProperty} union {?observationP a qb:MeasureProperty} }. ' +
+      '  %s ' + // Conditions
+      '} ', conditionsString);
 
     // console.log(query);
     var start = _.now();
@@ -365,8 +366,9 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
     }
 
     components.forEach(function(component) {
+      var id;
       if (component['qb:dimension']) {
-        var id = component['qb:dimension']['@id'];
+        id = component['qb:dimension']['@id'];
         if (_.contains(fixedProperties, id)) {
           return;
         }
@@ -375,7 +377,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
         dataset.dimensions.push(_.clone(component['qb:dimension']));
       }
       else if (component['qb:measure']) {
-        var id = component['qb:measure']['@id'];
+        id = component['qb:measure']['@id'];
         if (_.contains(fixedProperties, id)) {
           return;
         }
@@ -448,4 +450,4 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
       }
       return callback(null, datasets);
     });
-}
+};

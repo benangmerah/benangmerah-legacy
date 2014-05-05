@@ -12,34 +12,36 @@ var helpers = module.exports;
 
 helpers.ldValue = function(value) {
   return shared.getLdValue(value);
-}
+};
 
 // Show a preferred label based on locale and other heuristics
-helpers.preferredLabel = function() {
+helpers.preferredLabel = function(resource, options) {
   if (arguments.length === 1) {
-    var resource = this;
+    resource = this;
   }
   else {
-    var resource = arguments[0];
+    resource = arguments[0];
   }
 
   return shared.getPreferredLabel(resource);
-}
+};
 
 helpers.descriptionLink = function(value, lbl, options) {
   var hash = (options && options.hash) || {};
+  var uri;
   if (typeof value === 'string') {
-    var uri = value;
+    uri = value;
   }
   else {
-    var uri = value['@id'];
+    uri = value['@id'];
   }
 
+  var descriptionPath;
   if (hash.raw) {
-    var descriptionPath = uri;
+    descriptionPath = uri;
   }
   else {
-    var descriptionPath = shared.getDescriptionPath(uri);
+    descriptionPath = shared.getDescriptionPath(uri);
   }
 
   var label;
@@ -51,7 +53,7 @@ helpers.descriptionLink = function(value, lbl, options) {
     label = uri;
 
   return new Handlebars.SafeString('<a href="' + descriptionPath + '">' + label + '</a>');
-}
+};
 
 helpers.ldObject = function(ldObj) {
   if (ldObj instanceof Array) {
@@ -67,7 +69,7 @@ helpers.ldObject = function(ldObj) {
   else {
     return helpers.ldValue(ldObj);
   }
-}
+};
 
 helpers.rawLdObject = function(ldObj) {
   if (ldObj instanceof Array) {
@@ -83,7 +85,7 @@ helpers.rawLdObject = function(ldObj) {
   else {
     return helpers.ldValue(ldObj);
   }
-}
+};
 
 var deferredBlocks = [];
 
@@ -91,16 +93,15 @@ helpers.defer = function(options) {
   var deferredBlock = options.fn(this);
   deferredBlocks.push(deferredBlock);
   return '';
-}
+};
 
 helpers.flush = function() {
   var output = deferredBlocks.join('');
 
-  delete deferredBlocks;
-  deferredBlocks = [];
+  deferredBlocks.length = 0;
 
   return new Handlebars.SafeString(output);
-}
+};
 
 helpers.periodValues = function(periods, options) {
   var output = '';
@@ -110,7 +111,7 @@ helpers.periodValues = function(periods, options) {
   });
 
   return output;
-}
+};
 
 helpers.ifCollection = function(collection, options) {
   if (!_.isEmpty(collection)) {
@@ -119,7 +120,7 @@ helpers.ifCollection = function(collection, options) {
   else {
     return options.inverse(this);
   }
-}
+};
 
 helpers.link = function(text, options) {
   var hash = (options && options.hash) || {};
@@ -136,16 +137,16 @@ helpers.link = function(text, options) {
       "<a " + attrs.join(" ") + ">" + text + "</a>"
     );
   }
-}
+};
 
 helpers.trim = function(text) {
   return text.trim();
-}
+};
 
 helpers.datacubeTable = function(dataset, options) {
-  if (arguments.length == 1) {
-    var options = dataset;
-    var dataset = this;
+  if (!options) {
+    options = dataset;
+    dataset = this;
   }
 
   var getLabel = shared.getPreferredLabel;
@@ -182,11 +183,9 @@ helpers.datacubeTable = function(dataset, options) {
     var values = dimension.values;
 
     var nextDimension = dimensions[idx + 1];
+    var colSpan = '1';
     if (nextDimension) {
-      var colSpan = nextDimension.values.length;
-    }
-    else {
-      var colSpan = "1";
+      colSpan = nextDimension.values.length;
     }
 
     var firstColumn = dimensionLabels ? getLabel(dimension) : '';
@@ -219,14 +218,14 @@ helpers.datacubeTable = function(dataset, options) {
       }
     });
     output += '\n    </tr>';
-  })
+  });
   output += '\n  </tbody>';
 
   // End table
   output += '\n</table>';
 
   return new Handlebars.SafeString(output);
-}
+};
 
 helpers.input = function(property, options) {
   var hash = (options && options.hash) || {};
@@ -241,7 +240,7 @@ helpers.input = function(property, options) {
   }
 
   return new Handlebars.SafeString('<input ' + attrs.join(' ') + '>');
-}
+};
 
 helpers.textarea = function(property, options) {
   var hash = (options && options.hash) || {};
@@ -258,7 +257,7 @@ helpers.textarea = function(property, options) {
   }
 
   return new Handlebars.SafeString('<textarea ' + attrs.join(' ') + '>' + value + '</textarea>');
-}
+};
 
 helpers.select = function(property, choices, options) {
   var self = this;
@@ -270,33 +269,33 @@ helpers.select = function(property, choices, options) {
 
   attrs.push('name="' + property + '"');
 
-  var options = '';
+  var optionsString = '';
   if (_.isArray(choices)) {
     _.forEach(choices, function(value) {
-      options += '<option value="';
-      options += entities.encodeHTML(value) + '"';
+      optionsString += '<option value="';
+      optionsString += entities.encodeHTML(value) + '"';
 
       if (self[property] == value) {
-        options += ' selected';
+        optionsString += ' selected';
       }
 
-      options += '>' + entities.encodeHTML(value);
-      options += '</options>';
+      optionsString += '>' + entities.encodeHTML(value);
+      optionsString += '</optionsString>';
     });
   }
   else if (_.isObject(choices)) {
     _.forIn(choices, function(label, value) {
-      options += '<option value="';
-      options += entities.encodeHTML(value) + '"';
+      optionsString += '<option value="';
+      optionsString += entities.encodeHTML(value) + '"';
 
       if (self[property] == value) {
-        options += ' selected';
+        optionsString += ' selected';
       }
 
-      options += '>' + entities.encodeHTML(label);
-      options += '</options>';
+      optionsString += '>' + entities.encodeHTML(label);
+      optionsString += '</optionsString>';
     });
   }
 
-  return new Handlebars.SafeString('<select ' + attrs.join(' ') + '>' + options + '</select>');
-}
+  return new Handlebars.SafeString('<select ' + attrs.join(' ') + '>' + optionsString + '</select>');
+};
