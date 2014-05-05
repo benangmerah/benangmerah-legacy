@@ -55,7 +55,8 @@ app.use(bodyParser());
 app.use(methodOverride());
 app.use('/css', lessMiddleware(
   __dirname + '/src/less',
-  { dest: __dirname + '/public/css', force: (app.get('env') === 'development') },
+  { dest: __dirname + '/public/css',
+    force: (app.get('env') === 'development') },
   {},
   { compress: ('development' !== app.get('env')) }
 ));
@@ -80,5 +81,6 @@ if (config.stardog) {
 
 // RUN EXPRESS ---
 app.listen(config.port, function() {
-  console.log('BenangMerah running in ' + app.get('env') + ' mode on port ' + config.port + '.');
+  console.log('BenangMerah running in ' + app.get('env') +
+              ' mode on port ' + config.port + '.');
 });

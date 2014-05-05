@@ -37,7 +37,7 @@ function DriverSparqlStream(options) {
     conn.query(task, function(body, response) {
       if (response.statusCode != 200) {
         logger.error('Query failed: ' + body);
-        return callback(a);
+        return callback(body);
       }
       logger.info('Query successful.');
 
@@ -382,7 +382,8 @@ function submitEditInstance(req, res, next) {
   }
 
   function doDelete(callback) {
-    var baseQuery = 'delete { graph ?g { <%s> ?y ?z } } where { graph ?g { <%s> ?y ?z } }';
+    var baseQuery =
+      'delete { graph ?g { <%s> ?y ?z } } where { graph ?g { <%s> ?y ?z } }';
     var query = util.format(baseQuery, id, id);
 
     conn.execQuery(query, callback);
@@ -447,7 +448,8 @@ function submitDeleteInstance(req, res, next) {
   }
 
   function doDelete(callback) {
-    var baseQuery = 'delete { graph ?g { <%s> ?y ?z } } where { graph ?g { <%s> ?y ?z } }';
+    var baseQuery =
+      'delete { graph ?g { <%s> ?y ?z } } where { graph ?g { <%s> ?y ?z } }';
     var query = util.format(baseQuery, id, id);
 
     console.log(query);

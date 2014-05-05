@@ -45,14 +45,18 @@ helpers.descriptionLink = function(value, lbl, options) {
   }
 
   var label;
-  if (arguments.length === 3 && lbl)
+  if (arguments.length === 3 && lbl) {
     label = lbl;
-  if (!label)
+  }
+  if (!label) {
     label = shared.getPreferredLabel(value);
-  if (!label)
+  }
+  if (!label) {
     label = uri;
+  }
 
-  return new Handlebars.SafeString('<a href="' + descriptionPath + '">' + label + '</a>');
+  return new Handlebars.SafeString(
+    '<a href="' + descriptionPath + '">' + label + '</a>');
 };
 
 helpers.ldObject = function(ldObj) {
@@ -134,7 +138,7 @@ helpers.link = function(text, options) {
     }
 
     return new Handlebars.SafeString(
-      "<a " + attrs.join(" ") + ">" + text + "</a>"
+      '<a ' + attrs.join(' ') + '>' + text + '</a>'
     );
   }
 };
@@ -194,7 +198,8 @@ helpers.datacubeTable = function(dataset, options) {
     output += '\n      <th>' + firstColumn + '</th>';
     // console.log(values);
     values.forEach(function(value) {
-      output += '\n      <th colspan="' + colSpan + '">' + helpers.ldObject(value) + '</th>';
+      output += '\n      <th colspan="' + colSpan + '">';
+      output += helpers.ldObject(value) + '</th>';
     });
     output += '\n    </tr>';
   });
@@ -256,7 +261,8 @@ helpers.textarea = function(property, options) {
     value = entities.encodeHTML(this[property]);
   }
 
-  return new Handlebars.SafeString('<textarea ' + attrs.join(' ') + '>' + value + '</textarea>');
+  return new Handlebars.SafeString(
+    '<textarea ' + attrs.join(' ') + '>' + value + '</textarea>');
 };
 
 helpers.select = function(property, choices, options) {
@@ -297,5 +303,6 @@ helpers.select = function(property, choices, options) {
     });
   }
 
-  return new Handlebars.SafeString('<select ' + attrs.join(' ') + '>' + optionsString + '</select>');
+  return new Handlebars.SafeString(
+    '<select ' + attrs.join(' ') + '>' + optionsString + '</select>');
 };

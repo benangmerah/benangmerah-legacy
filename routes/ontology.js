@@ -13,7 +13,8 @@ var context = shared.context;
 
 var lifetime = config.cachelifetime || 100;
 
-var ontologyDefinition = 'https://raw.githubusercontent.com/benangmerah/ontology/master/ontology.ttl';
+var ontologyDefinition =
+  'https://raw.githubusercontent.com/benangmerah/ontology/master/ontology.ttl';
 
 var router = express.Router();
 module.exports = router;
@@ -80,8 +81,9 @@ function describePlace(req, res, next) {
         return callback(err);
       }
 
-      if (data['@id'])
+      if (data['@id']) {
         vars.parent = data;
+      }
 
       return callback();
     });
@@ -109,7 +111,8 @@ function describePlace(req, res, next) {
 
   function getStats(callback) {
     var statsQuery = util.format(
-      'select distinct ?dataset ?datasetLabel ?measureLabel ?period ?measureValue { ' +
+      'select distinct ' +
+      '?dataset ?datasetLabel ?measureLabel ?period ?measureValue { ' +
       '   ?o a qb:Observation. ' +
       '   ?o qb:dataSet ?dataset. ' +
       '   ?dataset rdfs:label ?datasetLabel. ' +
@@ -139,7 +142,8 @@ function describePlace(req, res, next) {
 
   function getDatacubes(callback) {
     var condition = util.format(
-      '?observation bm:refArea ?x. { { ?x owl:sameAs <%s>. } union { <%s> owl:sameAs ?x. } }',
+      '?observation bm:refArea ?x. { { ?x owl:sameAs <%s>. } ' +
+      'union { <%s> owl:sameAs ?x. } }',
       req.resourceURI, req.resourceURI);
 
     shared.getDatacube(condition, ['bm:refArea'], function(err, datasets) {
@@ -195,7 +199,9 @@ function describePlace(req, res, next) {
     async.series([execDescribeQuery, getParent, getChildren, getStats], render);
   }
   else {
-    async.series([execDescribeQuery, getParent, getChildren, getDatacubes], render);
+    async.series(
+      [execDescribeQuery, getParent, getChildren, getDatacubes],
+      render);
   }
 }
 
