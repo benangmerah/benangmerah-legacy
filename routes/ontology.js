@@ -142,7 +142,8 @@ function describePlace(req, res, next) {
 
   function getDatacubes(callback) {
     var condition = util.format(
-      '?observation bm:refArea ?x. { { ?x owl:sameAs <%s>. } ' +
+      'graph ?g { ?observation bm:refArea ?x. } ' +
+      'graph ?h { { ?x owl:sameAs <%s>. } ' +
       'union { <%s> owl:sameAs ?x. } }',
       req.resourceURI, req.resourceURI);
 
