@@ -228,7 +228,11 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   }
 
   var conditionsString = '';
-  var graph = {};
+  var allGraph = [];
+  var datasetIds = [];
+  var dsdIds = [];
+  var observationsGraph = [];
+  var datasetsGraph = [];
   var datasets = [];
   var dsds = {};
   var dimensionProperties = {};
@@ -261,68 +265,105 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
       });
   }
 
-  function execDatacubeQuery(callback) {
-    var query = util.format(
-      'construct { ' +
-      '  ?dataset ?datasetP ?datasetO. ' +
-      '  ?dataset qb:structure ?dsd. ' +
-      '  ?dsd qb:component ?component. ' +
-      '  ?component ?componentP ?componentO. ' +
-      '  ?dsd a qb:DataStructureDefinition. ' +
-      '  ?observation qb:dataSet ?dataset. ' +
-      '  ?observation ?observationP ?observationO. ' +
-      '  ?observation a qb:Observation. ' +
-      '  ?property a ?propertyType. ' +
-      '  ?property rdfs:label ?propertyLabel. ' +
-      '} where { ' +
-      '  ?dataset a qb:DataSet. ' +
-      '  ?dataset ?datasetP ?datasetO. ' +
-      '  ?observation qb:dataSet ?dataset. ' +
-      '  ?dsd a qb:DataStructureDefinition. ' +
-      '  ?dataset qb:structure ?dsd. ' +
-      '  ?dsd qb:component ?component. ' +
-      '  ?component ?componentP ?componentO. ' +
-      '  { { ?component qb:dimension ?property } ' +
-      '      union { ?component qb:measure ?property } }. ' +
-      '  ?component qb:order ?order. ' +
-      '  ?property a ?propertyType. ' +
-      '  ?property rdfs:label ?propertyLabel. ' +
-      '  ?observation a qb:Observation. ' +
-      '  ?observation qb:dataSet ?dataset. ' +
-      '  ?observation ?observationP ?observationO. ' +
-      '  { {?observationP a qb:DimensionProperty} ' +
-      '    union {?observationP a qb:MeasureProperty} }. ' +
-      '  %s ' + // Conditions
-      '} ', conditionsString);
+  function getObservations(callback) {
+    var query = 'construct { ?observation ?p ?o } ' +
+                'where { graph ?g { ' +
+                '?observation a qb:Observation. ' +
+                '?observation ?p ?o. ' +
+                conditionsString +
+                ' } }';
+    conn.getGraph(query, function(err, graph) {
+      if (err) {
+        return callback(err);
+      }
 
-    // console.log(query);
-    var start = _.now();
-    conn.getGraph(
-      { query: query, context: shared.context, form: 'compact' },
-      function(err, data) {
-        var end = _.now();
-        console.log('Query took %d msecs.', end - start);
+      allGraph = _.union(allGraph, graph);
+
+      graph.forEach(function(subgraph) {
+        var dataset = subgraph[shared.context.qb + 'dataSet'];
+        var ids = _.pluck(dataset, '@id');
+        datasetIds = _.union(datasetIds, ids);
+      });
+
+      callback();
+    });
+  }
+
+  function getDatasets(callback) {
+    async.mapSeries(datasetIds, function(datasetId, callback) {
+      var baseQuery = 'construct { <%s> ?p ?o. } ' +
+                      'where { graph ?g { <%s> ?p ?o. } }';
+
+      var query = util.format(baseQuery, datasetId, datasetId);
+      
+      conn.getGraph(query, function(err, graph) {
         if (err) {
           return callback(err);
         }
 
-        shared.pointerizeGraph(data);
-        graph = data['@graph'];
+        allGraph = _.union(allGraph, graph);
+        graph.forEach(function(subgraph) {
+          var structure = subgraph[shared.context.qb + 'structure'];
+          var ids = _.pluck(structure, '@id');
+          dsdIds = _.union(dsdIds, ids);
+        });
 
+        return callback(null);
+      });
+    }, function(err) {
+      if (err) {
+        return callback(err);
+      }
+
+      return callback();
+    });
+  }
+
+  function getDsds(callback) {
+    async.mapSeries(dsdIds, function(dsdId, callback) {
+      var baseQuery =
+        'construct { <%s> ?p ?o. <%s> qb:component ?c. ?c ?cP ?cO. } ' +
+        'where { graph ?g { <%s> ?p ?o. <%s> qb:component ?c. ?c ?cP ?cO. } }';
+
+      var query = util.format(baseQuery, dsdId, dsdId, dsdId, dsdId);
+      
+      // console.log(query);
+      conn.getGraph(query, function(err, graph) {
         // console.log(graph);
-
-        if (!graph) {
-          // console.log('Graph is empty');
-          return callback('empty_graph');
+        if (err) {
+          return callback(err);
         }
 
-        return callback();
+        allGraph = _.union(allGraph, graph);
+
+        return callback(null);
       });
+    }, function(err) {
+      if (err) {
+        return callback(err);
+      }
+
+      return callback();
+    });
+  }
+
+  function compactGraph(callback) {
+    jsonld.compact(allGraph, shared.context, function(err, compacted) {
+      shared.pointerizeGraph(compacted);
+      allGraph = compacted;
+
+      callback();
+    });
   }
 
   function siftGraph(callback) {
     // console.log('Sifting graph...');
     var isA = shared.ldIsA;
+
+    var graph = allGraph['@graph'];
+    if (!graph) {
+      return callback('empty_graph');
+    }
 
     graph.forEach(function(resource) {
       var id = resource['@id'];
@@ -346,7 +387,14 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
       }
     });
 
-    async.map(datasets, processDataset, callback);
+    async.mapSeries(datasets, processDataset, function(err, results) {
+      if (err) {
+        return callback(err);
+      }
+
+      datasets = _.compact(results);
+      callback();
+    });
   }
 
   function processDataset(dataset, callback) {
@@ -360,8 +408,15 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
     dataset.measures = [];
 
     var dsd = dataset['qb:structure'];
+    if (!dsd) {
+      return callback(null, undefined);
+    }
 
     var components = dsd['qb:component'];
+    if (!components) {
+      return callback(null, undefined);
+    }
+
     if (_.isArray(components)) {
       components = _.sortBy(dsd['qb:component'], function(component) {
         return shared.getLdValue(component['qb:order']);
@@ -445,7 +500,9 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   }
 
   // console.log('Datacube starting...');
-  async.series([generateConditionsString, execDatacubeQuery, siftGraph],
+  async.series(
+    [generateConditionsString, getObservations, getDatasets,
+     getDsds, compactGraph, siftGraph],
     function(err) {
       // console.log('Datacube finished.');
       if (err === 'empty_graph') {
