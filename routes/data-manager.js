@@ -17,6 +17,7 @@ var initiated = false;
 var INSTANCES_GRAPH_URI = 'tag:benangmerah.net:driver-instances';
 var availableDrivers = [];
 var driverInstances = [];
+var driverDetails = {};
 
 function DriverSparqlStream(options) {
   DriverSparqlStream.super_.call(this, { decodeStrings: false });
@@ -139,6 +140,7 @@ function initDataManager(callback, force) {
   Object.keys(dependencies).forEach(function(key) {
     if (/^benangmerah-driver-/.test(key)) {
       availableDrivers.push(key);
+      driverDetails[key] = require(key + '/package');
     }
   });
 
@@ -181,6 +183,9 @@ function requireAuthentication(req, res, next) {
 }
 
 function init(req, res, next) {
+  res.locals.layout = 'layouts/data-manager';
+  res.locals.availableDrivers = availableDrivers;
+  res.locals.driverDetails = driverDetails;
   initDataManager(next);
 }
 

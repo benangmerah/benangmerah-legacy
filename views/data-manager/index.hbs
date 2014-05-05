@@ -3,46 +3,51 @@
 		<h1>Data Manager</h1>
 		<h2>Overview</h2>
 	</header>
-	<div class="row">
-		<div class="col-sm-12 col-md-8 col-lg-9">
-			<h3>Driver Instances <a href="/data-manager/instance/create" class="btn btn-default pull-right">Create</a></h3>
-			<table class="table">
-				<thead>
-					<tr>
-						<th class="status"></th>
-						<th class="instance-label">Label</th>
-						<th class="driver">Driver</th>
-						<th class="last-fetched">Last Fetched</th>
-						<th class="actions" colspan="2">Actions</th>
-					</tr>
-				</thead>
-				{{#each driverInstances}}
-				{{log this}}
+	<section class="driver-instances">
+		<h4>Driver Instances <a href="/data-manager/instance/create" class="btn btn-default pull-right">Create</a></h4>
+		<table class="table table-striped">
+			<thead>
 				<tr>
-					<td>{{#if bm:enabled}}<i class="glyphicon glyphicon-ok"></i>{{/if}}</td>
-					<td>
-						<strong>{{rdfs:label}}</strong><br>
-						<small>&lt;{{[@id]}}&gt;</small>
-					</td>
-					<td><a href="/data-manager/driver/view/{{bm:driverName}}">{{bm:driverName}}</a></td>
-					<td>{{#if instance}}{{instance.lastFetched}}{{/if}}</td>
-					<td><a href="/data-manager/instance/view/{{encodeURI [@id]}}" class="btn btn-default">View</a></td>
-					<td>{{#if bm:enabled}}
-						<form action="/data-manager/instance/fetch/{{encodeURI [@id]}}" method="POST">
-							<button type="submit" class="btn btn-default">Fetch</submit>
-						</form>
-					{{/if}}</td>
+					<th class="status" width="1%"></th>
+					<th class="instance-label" width="35%">Label</th>
+					<th class="driver" width="35%">Driver</th>
+					<th class="last-fetched" width="26%">Last Fetched</th>
+					<th class="actions" colspan="4" width="3%">Actions</th>
 				</tr>
-				{{/each}}
-			</table>
-		</div>
-		<div class="col-sm-12 col-md-4 col-lg-3">
-			<h3>Available Drivers</h3>
-			<ul>
-				{{#each availableDrivers}}
-				<li><a href="/data-manager/driver/view/{{this}}">{{this}}</a></li>
-				{{/each}}
-			</ul>
-		</div>
-	</div>
+			</thead>
+			{{#each driverInstances}}
+			{{log this}}
+			<tr>
+				<td>{{#if bm:enabled}}<i class="glyphicon glyphicon-ok"></i>{{/if}}</td>
+				<td>
+					<strong><a href="/data-manager/instance/view/{{bm:driverName}}">{{rdfs:label}}</a></strong><br>
+					<small>&lt;{{[@id]}}&gt;</small>
+				</td>
+				<td>{{bm:driverName}}</td>
+				<td>{{#if instance}}{{instance.lastFetched}}{{/if}}</td>
+				<td><a href="/data-manager/instance/view/{{encodeURI [@id]}}" class="btn btn-default">View</a></td>
+				<td><a href="/data-manager/instance/edit/{{encodeURI [@id]}}" class="btn btn-info">Edit</a></td>
+				<td>{{#if bm:enabled}}
+					<form action="/data-manager/instance/fetch/{{encodeURI [@id]}}" method="POST">
+						<button type="submit" class="btn btn-success">Fetch</submit>
+					</form>
+				{{/if}}</td>
+				<td>{{#if bm:enabled}}
+					<form action="/data-manager/instance/delete/{{encodeURI [@id]}}" method="POST">
+						<button type="submit" class="btn btn-danger">Delete</submit>
+					</form>
+				{{/if}}</td>
+			</tr>
+			{{/each}}
+		</table>
+	</section>
+	<section class="drivers">
+		<h4>Available Drivers</h4>
+		<dl>
+			{{#each driverDetails}}
+			<dt>{{name}}</dt>
+			<dd>{{description}}</dd>
+			{{/each}}
+		</dl>
+	</drivers>
 </div>
