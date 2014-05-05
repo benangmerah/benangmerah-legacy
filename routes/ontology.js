@@ -50,7 +50,10 @@ function describePlace(req, res, next) {
   var vars = {};
 
   function execDescribeQuery(callback) {
-    var describeQuery = util.format('describe <%s>', req.resourceURI);
+    var baseQuery = 'construct { <%s> ?p ?o } ' +
+                    'where { graph ?g { <%s> ?p ?o } }';
+    var describeQuery =
+      util.format(baseQuery, req.resourceURI, req.resourceURI);
 
     conn.getGraph({
       query: describeQuery,
@@ -91,7 +94,8 @@ function describePlace(req, res, next) {
 
   function getChildren(callback) {
     var childrenQuery = util.format(
-      'describe ?child where { ?child bm:hasParent <%s> }',
+      'construct { ?child ?p ?o } ' +
+      'where { graph ?g { ?child bm:hasParent <%s>. ?child ?p ?o. } }',
       req.resourceURI
     );
 
@@ -208,7 +212,10 @@ function describePlace(req, res, next) {
 
 function describeDataset(req, res, next) {
   function execDescribeQuery(callback) {
-    var describeQuery = util.format('describe <%s>', req.resourceURI);
+    var baseQuery = 'construct { <%s> ?p ?o } ' +
+                    'where { graph ?g { <%s> ?p ?o } }';
+    var describeQuery =
+      util.format(baseQuery, req.resourceURI, req.resourceURI);
 
     conn.getGraph({
       query: describeQuery,
@@ -241,7 +248,10 @@ function describeDataset(req, res, next) {
 
 function describeThing(req, res, next) {
   function execDescribeQuery(callback) {
-    var describeQuery = util.format('describe <%s>', req.resourceURI);
+    var baseQuery = 'construct { <%s> ?p ?o } ' +
+                    'where { graph ?g { <%s> ?p ?o } }';
+    var describeQuery =
+      util.format(baseQuery, req.resourceURI, req.resourceURI);
 
     conn.getGraph({
       query: describeQuery,
@@ -278,8 +288,8 @@ function sameAsFallback(req, res, next) {
 
   var query = util.format(
     'select distinct ?twin ' +
-    'where { { ?twin owl:sameAs <%s> } ' +
-    'union { <%s> owl:sameAs ?twin } }', req.resourceURI);
+    'where { graph ?g { { ?twin owl:sameAs <%s> } ' +
+    'union { <%s> owl:sameAs ?twin } } }', req.resourceURI);
 
   return conn.getColValues(query, function(err, col) {
     if (err) {

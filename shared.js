@@ -39,7 +39,8 @@ shared.getInferredTypes = function(uri, callback) {
     return callback(null, cacheEntry);
   }
 
-  var query = util.format('select ?type where { <%s> a ?type }', uri);
+  var query =
+    util.format('select ?type where { graph ?g { <%s> a ?type } }', uri);
   conn.getColValues(
     { query: query, reasoning: 'QL' }, function(err, resolvedTypes) {
       if (err) {
@@ -272,10 +273,15 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
                 '?observation a qb:Observation. ' +
                 '?observation ?p ?o. } ' +
                 conditionsString + ' }';
-                console.log(query);
+
+    var start = _.now();
     conn.getGraph(query, function(err, graph) {
       if (err) {
         return callback(err);
+      }
+
+      if (graph.length === 0) {
+        return callback('empty_graph');
       }
 
       allGraph = _.union(allGraph, graph);
@@ -531,6 +537,10 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
         cursor[measureId] = observation[measureId];
         // console.log('%s: %s', measureId, observation[measureId]);
       });
+    });
+
+    dataset.dimensions.forEach(function(dimension) {
+      dimension.values = _.sortBy(dimension.values, shared.getLdValue);
     });
 
     callback(null, dataset);
