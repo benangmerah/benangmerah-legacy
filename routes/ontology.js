@@ -84,7 +84,7 @@ function describePlace(req, res, next) {
         vars.parent = data;
 
       return callback();
-    })
+    });
   }
 
   function getChildren(callback) {
@@ -109,17 +109,17 @@ function describePlace(req, res, next) {
 
   function getStats(callback) {
     var statsQuery = util.format(
-      'select distinct ?dataset ?datasetLabel ?measureLabel ?period ?measureValue { \
-         ?o a qb:Observation. \
-         ?o qb:dataSet ?dataset. \
-         ?dataset rdfs:label ?datasetLabel. \
-         ?o bm:refArea ?x. \
-         { ?x owl:sameAs <%s>. } union { <%s> owl:sameAs ?x. } \
-         ?o bm:refPeriod ?period. \
-         ?o ?measure ?measureValue. \
-         ?measure a qb:MeasureProperty. \
-         ?measure rdfs:label ?measureLabel. \
-       } order by asc(?measureLabel) asc(?period)',
+      'select distinct ?dataset ?datasetLabel ?measureLabel ?period ?measureValue { ' +
+      '   ?o a qb:Observation. ' +
+      '   ?o qb:dataSet ?dataset. ' +
+      '   ?dataset rdfs:label ?datasetLabel. ' +
+      '   ?o bm:refArea ?x. ' +
+      '   { ?x owl:sameAs <%s>. } union { <%s> owl:sameAs ?x. } ' +
+      '   ?o bm:refPeriod ?period. ' +
+      '   ?o ?measure ?measureValue. ' +
+      '   ?measure a qb:MeasureProperty. ' +
+      '   ?measure rdfs:label ?measureLabel. ' +
+      ' } order by asc(?measureLabel) asc(?period)',
        // TODO add language filter
        req.resourceURI, req.resourceURI);
 
@@ -132,7 +132,7 @@ function describePlace(req, res, next) {
           return callback(err);
         }
         else {
-          parseStats(data, callback)
+          parseStats(data, callback);
         }
       });
   }
@@ -149,7 +149,7 @@ function describePlace(req, res, next) {
 
       vars.qbDatasets = datasets;
       callback();
-    })
+    });
   }
 
   function parseStats(rows, callback) {
@@ -214,7 +214,7 @@ function describeDataset(req, res, next) {
 
   function render(err, data, datasets) {
     if (err) {
-      return next(err)
+      return next(err);
     }
 
     var resource = _.extend({}, data);
@@ -247,7 +247,7 @@ function describeThing(req, res, next) {
 
   function render(err, data) {
     if (err) {
-      return next(err)
+      return next(err);
     }
 
     var resource = _.extend({}, data);
@@ -269,9 +269,10 @@ function sameAsFallback(req, res, next) {
     return next();
   }
 
-  var query = util.format('select distinct ?twin \
-    where { { ?twin owl:sameAs <%s> } \
-    union { <%s> owl:sameAs ?twin } }', req.resourceURI);
+  var query = util.format(
+    'select distinct ?twin ' +
+    'where { { ?twin owl:sameAs <%s> } ' +
+    'union { <%s> owl:sameAs ?twin } }', req.resourceURI);
 
   return conn.getColValues(query, function(err, col) {
     if (err) {

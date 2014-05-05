@@ -8,8 +8,8 @@ module.exports = router;
 
 function index(req, res, next) {
   function execQuery(callback) {
-    var query = 'select distinct ?uri ?label \
-      where { ?uri a bm:Provinsi. ?uri rdfs:label ?label }';
+    var query = 'select distinct ?uri ?label ' +
+                'where { ?uri a bm:Provinsi. ?uri rdfs:label ?label }';
 
     conn.getResults(query, callback);
   }
