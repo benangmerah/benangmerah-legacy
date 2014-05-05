@@ -8,6 +8,8 @@ var _ = require('lodash');
 var shared = require('./shared');
 var Handlebars = require('hbs').handlebars;
 
+require('helper-moment').register(Handlebars, {});
+
 var helpers = module.exports;
 
 helpers.ldValue = function(value) {
@@ -306,3 +308,22 @@ helpers.select = function(property, choices, options) {
   return new Handlebars.SafeString(
     '<select ' + attrs.join(' ') + '>' + optionsString + '</select>');
 };
+
+module.exports.logLevelClass = function(logLevel, options) {
+  if (!options) {
+    logLevel = this.level;
+  }
+
+  if (logLevel === 'error') {
+    return 'danger';
+  }
+  else if (logLevel === 'warn') {
+    return 'warning';
+  }
+  else if (logLevel === 'finish') {
+    return 'success';
+  }
+  else {
+    return 'info';
+  }
+}

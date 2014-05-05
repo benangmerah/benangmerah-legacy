@@ -30,6 +30,7 @@
     "jsonld": "^0.2.8",
     "benangmerah-driver-datagoid": "benangmerah/data.go.id-ld",
     "winston": "^0.7.3",
-    "entities": "^1.1.1"
+    "entities": "^1.1.1",
+    "helper-moment": "^0.1.3"
   }
 }

@@ -19,7 +19,56 @@ var availableDrivers = [];
 var driverInstances = [];
 var driverDetails = {};
 
-function DriverSparqlStream(options) {
+var sharedQueryQueue = async.queue(function(task, callback) {
+  var query = task.query;
+  var instance = task.instance;
+
+  instance.info('Executing SPARQL query...');
+  conn.execQuery(query, function(err) {
+    if (err) {
+      instance.error('Query failed: ' + err);
+      return callback(err);
+    }
+
+    instance.info('Query successful');
+    return callback();
+  });
+}, 1);
+
+sharedQueryQueue.drain = function() {
+  driverInstances.forEach(function(inst) {
+    if (inst.lastLog.level === 'info') {
+      var logObject = {
+        level: 'finish',
+        message: 'Idle.',
+        timestamp: inst.lastLog.timestamp
+      };
+      inst.lastLog = logObject;
+      inst.log.push(logObject);
+    }
+  });
+  logger.info('Query queue has been drained.');
+}
+
+function instanceLog(instance, level, message, timestamp) {
+  if (!timestamp) {
+    timestamp = _.now();
+  }
+
+  var logObject = {
+    level: level,
+    message: message,
+    timestamp: timestamp
+  };
+
+  instance.log.push(logObject);
+  instance.lastLog = logObject;
+  logger.log(level, instance['@id'] + ': ' + message);
+}
+
+function DriverSparqlStream(options, instance) {
+  this.instance = instance;
+
   DriverSparqlStream.super_.call(this, { decodeStrings: false });
   if (options && options.graphUri) {
     this.graphUri = options.graphUri;
@@ -31,19 +80,6 @@ function DriverSparqlStream(options) {
   else {
     this.threshold = 104857;
   }
-
-  this.queryQueue = async.queue(function(task, callback) {
-    logger.info('Executing SPARQL query...');
-    conn.query(task, function(body, response) {
-      if (response.statusCode != 200) {
-        logger.error('Query failed: ' + body);
-        return callback(body);
-      }
-      logger.info('Query successful.');
-
-      return callback();
-    });
-  }, 1);
 
   this.on('end', this.commit);
 }
@@ -82,12 +118,20 @@ DriverSparqlStream.prototype.commit = function() {
     baseQuery = 'INSERT DATA {\n%s}\n';
     query = util.format(baseQuery, fragment);
   }
-  this.queryQueue.push(query);
+  sharedQueryQueue.push({ query: query, instance: this.instance });
 };
 
 function prepareInstance(rawDriverInstance) {
+  var firstLogObject = {
+    level: 'finish',
+    message: 'Initialized.',
+    timestamp: _.now()
+  };
+
   var preparedInstance = _.extend(rawDriverInstance, {
-    options: {}
+    options: {},
+    log: [firstLogObject],
+    lastLog: firstLogObject
   });
 
   try {
@@ -113,11 +157,19 @@ function prepareInstance(rawDriverInstance) {
 
         var sparqlStream = new DriverSparqlStream({
           graphUri: preparedInstance['@id']
-        });
+        }, instance);
         var n3writer = n3.Writer(sparqlStream);
 
         instance.on('addTriple', function(s, p, o) {
           n3writer.addTriple(s, p, o);
+        });
+
+        instance.on('log', function(level, message) {
+          instanceLog(preparedInstance, level, message);
+        });
+
+        instance.on('finish', function() {
+          instanceLog(preparedInstance, 'info', 'Finished fetching.');
         });
       }
       catch (e) {
@@ -150,7 +202,6 @@ function initDataManager(callback, force) {
     form: 'compact',
     context: shared.context
   }, function(err, data) {
-    console.log(data);
     if (err) {
       return callback(err);
     }
@@ -190,20 +241,12 @@ function init(req, res, next) {
 }
 
 function index(req, res, next) {
-  function render(err) {
-    if (err) {
-      return res.render('data-manager/index', {
-        error: err
-      });
-    }
-
-    res.render('data-manager/index', {
-      availableDrivers: availableDrivers,
-      driverInstances: driverInstances
-    });
-  }
-
-  async.series([], render);
+  res.render('data-manager/index', {
+    availableDrivers: availableDrivers,
+    driverInstances: driverInstances,
+    query: req.query,
+    queryQueueLength: sharedQueryQueue.length()
+  });
 }
 
 function viewInstance(req, res, next) {
@@ -281,7 +324,6 @@ function submitCreateInstance(req, res, next) {
       'bm:optionsYAML': req.body['bm:optionsYAML'],
       'bm:enabled': req.body['bm:enabled'] ? true : false
     }, INSTANCES_GRAPH_URI, function(err, data) {
-      console.log(data);
       if (err) {
         return callback(err);
       }
@@ -452,8 +494,6 @@ function submitDeleteInstance(req, res, next) {
       'delete { graph ?g { <%s> ?y ?z } } where { graph ?g { <%s> ?y ?z } }';
     var query = util.format(baseQuery, id, id);
 
-    console.log(query);
-
     conn.execQuery(query, callback);
   }
 
@@ -517,8 +557,6 @@ function submitFetchInstance(req, res, next) {
 
     for (var i = 0; i < driverInstances.length; ++i) {
       var instance = driverInstances[i];
-      console.log(instance['@id']);
-      console.log('a: %j', instance);
       if (instance['@id'] === id && instance.instance) {
         theInstance = instance.instance;
         return callback();

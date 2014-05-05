@@ -3,28 +3,40 @@
 		<h1>Data Manager</h1>
 		<h2>Overview</h2>
 	</header>
+
+	{{#if query.fetchedInstance}}
+	<div class="alert alert-success">
+		Instance {{query.fetchedInstance}} is now fetching in the background. Refresh this page to see updates on its status.
+	</div>
+	{{/if}}
+
 	<section class="driver-instances">
 		<h4>Driver Instances <a href="/data-manager/instance/create" class="btn btn-default pull-right">Create</a></h4>
 		<table class="table table-striped">
 			<thead>
 				<tr>
 					<th class="status" width="1%"></th>
-					<th class="instance-label" width="35%">Label</th>
-					<th class="driver" width="35%">Driver</th>
-					<th class="last-fetched" width="26%">Last Fetched</th>
+					<th class="instance-label" width="40%">Label</th>
+					<th class="driver" width="24%">Driver</th>
+					<th class="driver" width="32%">Status</th>
 					<th class="actions" colspan="4" width="3%">Actions</th>
 				</tr>
 			</thead>
 			{{#each driverInstances}}
-			{{log this}}
 			<tr>
 				<td>{{#if bm:enabled}}<i class="glyphicon glyphicon-ok"></i>{{/if}}</td>
 				<td>
-					<strong><a href="/data-manager/instance/view/{{bm:driverName}}">{{rdfs:label}}</a></strong><br>
+					<strong><a href="/data-manager/instance/view/{{encodeURI [@id]}}">{{rdfs:label}}</a></strong><br>
 					<small>&lt;{{[@id]}}&gt;</small>
 				</td>
 				<td>{{bm:driverName}}</td>
-				<td>{{#if instance}}{{instance.lastFetched}}{{/if}}</td>
+				{{#with lastLog}}
+				<td>
+					<span class="text-{{logLevelClass}}">{{message}}</span><br>
+					<small>{{moment lastLog.timestamp fromNow=null}}</small>
+				</td>
+				{{/with}}
+				{{!-- <td>{{#if instance}}{{instance.lastFetched}}{{/if}}</td> --}}
 				<td><a href="/data-manager/instance/view/{{encodeURI [@id]}}" class="btn btn-default">View</a></td>
 				<td><a href="/data-manager/instance/edit/{{encodeURI [@id]}}" class="btn btn-info">Edit</a></td>
 				<td>{{#if bm:enabled}}

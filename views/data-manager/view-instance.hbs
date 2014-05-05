@@ -22,5 +22,23 @@
 
 	{{#markdown}}{{rdfs:comment}}{{/markdown}}
 
- 	{{log this}}
+	<section class="log">
+		<h4>Instance log</h4>
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Time</th>
+					<th>Level</th>
+					<th>Message</th>
+				</tr>
+			</thead>
+ 			{{#each log}}
+	 		<tr class="{{logLevelClass}}">
+	 			<td>{{moment timestamp fromNow=null}}</td>
+	 			<td>{{level}}</td>
+	 			<td>{{message}}</td>
+	 		</tr>
+ 			{{/each}}
+ 		</table>
+ 	</section>
  </div>
