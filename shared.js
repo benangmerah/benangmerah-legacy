@@ -230,6 +230,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   var conditionsString = '';
   var allGraph = [];
   var datasetIds = [];
+  var propertyIds = [];
   var dsdIds = [];
   var observationsGraph = [];
   var datasetsGraph = [];
@@ -260,7 +261,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
         }
         string = string.replace(/<tag:sparql-param:\?observation>/g, 
                                 '?observation');
-        conditionsString = string;
+        conditionsString = 'graph ?g { ' + string + ' } ';
         callback();
       });
   }
@@ -269,9 +270,9 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
     var query = 'construct { ?observation ?p ?o } ' +
                 'where { graph ?g { ' +
                 '?observation a qb:Observation. ' +
-                '?observation ?p ?o. ' +
-                conditionsString +
-                ' } }';
+                '?observation ?p ?o. } ' +
+                conditionsString + ' }';
+                console.log(query);
     conn.getGraph(query, function(err, graph) {
       if (err) {
         return callback(err);
@@ -283,9 +284,45 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
         var dataset = subgraph[shared.context.qb + 'dataSet'];
         var ids = _.pluck(dataset, '@id');
         datasetIds = _.union(datasetIds, ids);
+
+        var properties = _.keys(subgraph);
+        properties = _.filter(properties, function(prop) {
+          return prop.indexOf(shared.context.qb) === -1;
+        });
+        propertyIds = _.union(propertyIds, properties);
       });
 
       callback();
+    });
+  }
+
+  function getProperties(callback) {
+    async.mapSeries(propertyIds, function(propertyId, callback) {
+      var baseQuery = 'construct { <%s> ?p ?o. } ' +
+                      'where { graph ?g { <%s> ?p ?o. } }';
+
+      var query = util.format(baseQuery, propertyId, propertyId);
+      
+      conn.getGraph(query, function(err, graph) {
+        if (err) {
+          return callback(err);
+        }
+
+        allGraph = _.union(allGraph, graph);
+        graph.forEach(function(subgraph) {
+          var structure = subgraph[shared.context.qb + 'structure'];
+          var ids = _.pluck(structure, '@id');
+          dsdIds = _.union(dsdIds, ids);
+        });
+
+        return callback(null);
+      });
+    }, function(err) {
+      if (err) {
+        return callback(err);
+      }
+
+      return callback();
     });
   }
 
@@ -501,8 +538,8 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
 
   // console.log('Datacube starting...');
   async.series(
-    [generateConditionsString, getObservations, getDatasets,
-     getDsds, compactGraph, siftGraph],
+    [generateConditionsString, getObservations, getProperties,
+     getDatasets, getDsds, compactGraph, siftGraph],
     function(err) {
       // console.log('Datacube finished.');
       if (err === 'empty_graph') {
