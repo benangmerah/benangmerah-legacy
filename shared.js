@@ -510,6 +510,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
         var dimensionId = dimension['@id'];
         // console.log('Walking: %s', dimensionId);
         var obsDimValue = observation[dimensionId];
+        var obsDimValueLiteral = shared.getLdValue(obsDimValue);
         var nextIndex = '';
         if (_.isEmpty(obsDimValue)) {
           return;
@@ -517,9 +518,12 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
 
         if (_.isUndefined(dimension.values)) {
           dimension.values = [];
+          dimension.literalValues = [];
         }
-        if (!_.contains(dimension.values, obsDimValue)) {
+
+        if (!_.contains(dimension.literalValues, obsDimValueLiteral)) {
           dimension.values.push(obsDimValue);
+          dimension.literalValues.push(obsDimValueLiteral);
         }
 
         nextIndex = shared.getLdValue(obsDimValue, true);

@@ -181,52 +181,123 @@ helpers.datacubeTable = function(dataset, options) {
   }
   output += '>';
 
-  // Header
   var dimensions = dataset.dimensions;
-
-  output += '\n  <thead>';
-  dimensions.forEach(function(dimension, idx) {
-    var values = dimension.values;
-
-    var nextDimension = dimensions[idx + 1];
-    var colSpan = '1';
-    if (nextDimension) {
-      colSpan = nextDimension.values.length;
-    }
-
-    var firstColumn = dimensionLabels ? getLabel(dimension) : '';
-
-    output += '\n    <tr>';
-    output += '\n      <th>' + firstColumn + '</th>';
-    // console.log(values);
-    values.forEach(function(value) {
-      output += '\n      <th colspan="' + colSpan + '">';
-      output += helpers.ldObject(value) + '</th>';
-    });
-    output += '\n    </tr>';
-  });
-  output += '\n  </thead>';
-
-  // Body
   var measures = dataset.measures;
 
-  output += '\n  <tbody>';
-  measures.forEach(function(measure, idx) {
+  if (measures.length === 1 && dimensions.length > 1) {
+    var shiftedDimensions = _.clone(dimensions);
+    var firstDimension = shiftedDimensions.shift();
+
+    // Header
+    output += '\n  <thead>';
+    shiftedDimensions.forEach(function(dimension, idx) {
+      var values = dimension.values;
+
+      var previousDimension = shiftedDimensions[idx - 1];
+      var repeat = 1;
+      if (previousDimension) {
+        repeat = previousDimension.values.length;
+      }
+
+      var nextDimension = shiftedDimensions[idx + 1];
+      var colSpan = '1';
+      if (nextDimension) {
+        colSpan = nextDimension.values.length;
+      }
+
+      var firstColumn = dimensionLabels ? getLabel(dimension) : '';
+
+      output += '\n    <tr>';
+      output += '\n      <th>' + firstColumn + '</th>';
+      // console.log(values);
+      _.times(repeat, function() {
+        values.forEach(function(value) {
+          output += '\n      <th colspan="' + colSpan + '">';
+          output += helpers.ldObject(value) + '</th>';
+        });
+      });
+
+      output += '\n    </tr>';
+    });
+    output += '\n  </thead>';
+
+    // Body
+    output += '\n  <tbody>';
+    var measure = measures[0];
     var measureId = measure['@id'];
     var measureLabel = getLabel(measure);
-    var cursor = dataset.datacube;
+    firstDimension.values.forEach(function(value) {
+      var cursor = dataset.datacube[value];
 
-    output += '\n    <tr>';
-    output += '\n      <th>' + measureLabel + '</th>';
-    traverse(dataset.datacube).forEach(function() {
-      if (this.level === dimensions.length) {
-        var text = helpers.ldObject(this.node[measureId]);
-        output += '\n      <td>' + text + '</td>';
-      }
+      output += '\n    <tr>';
+      output += '\n      <th>';
+      output += helpers.ldObject(value);
+      output += '</th>';
+      traverse(cursor).forEach(function() {
+        if (this.level === shiftedDimensions.length) {
+          var text = helpers.ldObject(this.node[measureId]);
+          output += '\n      <td>' + text + '</td>';
+        }
+      });
+      output += '\n    </tr>';
     });
-    output += '\n    </tr>';
-  });
-  output += '\n  </tbody>';
+    output += '\n  </tbody>';
+  }
+  else {
+    // Header
+
+    output += '\n  <thead>';
+    dimensions.forEach(function(dimension, idx) {
+      var values = dimension.values;
+
+      var previousDimension = dimensions[idx - 1];
+      var repeat = 1;
+      if (previousDimension) {
+        repeat = previousDimension.values.length;
+      }
+
+      var nextDimension = dimensions[idx + 1];
+      var colSpan = '1';
+      if (nextDimension) {
+        colSpan = nextDimension.values.length;
+      }
+
+      var firstColumn = dimensionLabels ? getLabel(dimension) : '';
+
+      output += '\n    <tr>';
+      output += '\n      <th>' + firstColumn + '</th>';
+      // console.log(values);
+      _.times(repeat, function() {
+        values.forEach(function(value) {
+          output += '\n      <th colspan="' + colSpan + '">';
+          output += helpers.ldObject(value) + '</th>';
+        });
+      });
+
+      output += '\n    </tr>';
+    });
+    output += '\n  </thead>';
+
+    // Body
+
+    output += '\n  <tbody>';
+    measures.forEach(function(measure, idx) {
+      var measureId = measure['@id'];
+      var measureLabel = getLabel(measure);
+      var cursor = dataset.datacube;
+
+      output += '\n    <tr>';
+      output += '\n      <th>' + measureLabel + '</th>';
+      traverse(dataset.datacube).forEach(function() {
+        if (this.level === dimensions.length) {
+          var text = helpers.ldObject(this.node[measureId]);
+          output += '\n      <td>' + text + '</td>';
+        }
+      });
+      output += '\n    </tr>';
+    });
+    output += '\n  </tbody>';
+  }
 
   // End table
   output += '\n</table>';
