@@ -10,7 +10,7 @@ var conn = require('starmutt');
 var hbs = require('hbs');
 var helperLib = require('handlebars-helpers');
 var lessMiddleware = require('less-middleware');
-var favicon = require('static-favicon');
+var favicon = require('serve-favicon');
 var logger = require('morgan');
 var bodyParser = require('body-parser');
 var methodOverride = require('method-override');
@@ -49,9 +49,9 @@ app.set('view engine', 'hbs');
 app.set('view options', { layout: 'layouts/main' });
 
 // express: middleware before routing
-app.use(favicon());
+app.use(favicon(__dirname + '/public/favicon.ico'));
 app.use(logger('dev'));
-app.use(bodyParser());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(methodOverride());
 app.use('/css', lessMiddleware(
   __dirname + '/src/less',
