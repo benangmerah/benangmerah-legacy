@@ -103,6 +103,15 @@ helpers.ldObject = function(ldObj) {
   }
 };
 
+helpers.extendedLabel = function(ldObj, helpText) {
+  var html = '<span>' + shared.getPreferredLabel(ldObj) +
+             ' ' + helpers.descriptionLink(ldObj,
+              '<i class="glyphicon glyphicon-info-sign more-info"></i>', {}) +
+             '</span>';
+
+  return new Handlebars.SafeString(html);
+}
+
 helpers.rawLdObject = function(ldObj) {
   if (ldObj instanceof Array) {
     ldObj = ldObj.map(helpers.ldObject);
@@ -117,6 +126,68 @@ helpers.rawLdObject = function(ldObj) {
   else {
     return helpers.ldValue(ldObj);
   }
+};
+
+helpers.leaderboard = function(context, rankKey, options) {
+  // Forked from Handlebars#each
+
+  if (!options) {
+    throw new Error('Must pass iterator to #leaderboard');
+  }
+
+  var fn = options.fn;
+  var i = 0;
+  var rank = 0;
+  var ret = '', data;
+
+  var contextPath;
+
+  if (_.isFunction(context)) { context = context.call(this); }
+
+  if (options.data) {
+    data = _.extend({}, options.data);
+    data._parent = options.data;
+  }
+
+  var previousValue;
+  var lastRank;
+
+  if (context && typeof context === 'object') {
+    _.forEach(context, function(item, i) {
+      ++rank;
+
+      if (data) {
+        var thisValue = item[rankKey];
+        thisValue = shared.getLdValue(thisValue);
+
+        if (thisValue === previousValue) {
+          data.rank = lastRank;
+          data.sameAsPrevious = true;
+        }
+        else {
+          lastRank = rank;
+          data.rank = rank;
+          data.sameAsPrevious = false;
+        }
+
+        data.index = i;
+        data.first = (i === 0);
+        data.last = (i === (context.length - 1));
+
+        if (contextPath) {
+          data.contextPath = contextPath + i;
+        }
+
+        previousValue = thisValue;
+      }
+
+      ret = ret + fn(item, { data: data });
+
+      ++i;
+    });
+  }
+
+  return ret;
 };
 
 var deferredBlocks = [];
@@ -309,11 +380,11 @@ helpers.datacubeTable = function(dataset, options) {
     output += '\n  <tbody>';
     measures.forEach(function(measure, idx) {
       var measureId = measure['@id'];
-      var measureLabel = getLabel(measure);
+      var measureText = helpers.extendedLabel(measure);
       var cursor = dataset.datacube;
 
       output += '\n    <tr>';
-      output += '\n      <th>' + measureLabel + '</th>';
+      output += '\n      <th>' + measureText + '</th>';
       traverse(dataset.datacube).forEach(function() {
         if (this.level === dimensions.length) {
           var text = helpers.ldObject(this.node[measureId]);

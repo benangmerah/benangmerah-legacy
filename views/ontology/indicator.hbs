@@ -1,0 +1,107 @@
+<div class="content resource">
+	<article class="resource">
+		<header>
+			<h1>Rincian Indikator Pembangunan</h1>
+			<h2>{{#with resource}}
+						{{#ifCollection rdfs:label}}{{preferredLabel}}
+						{{else}}
+						{{[@id]}}
+					{{/ifCollection}}{{/with}}</h2>
+		</header>
+
+		<section class="infobox-collection">
+			<div class="row">
+				<div class="col-md-4">
+					<h3>Ranking Nasional ({{selectedPeriod}})</h3>
+					<div class="infobox-body leaderboard">
+						<table class="table">
+						{{#leaderboard rankings 'bm:value'}}
+							<tr>
+								<td>{{@rank}}</td>
+								<td>{{descriptionLink bm:refArea}}</td>
+								<td>{{ldValue bm:value}}</td>
+							</tr>
+						{{/leaderboard}}
+						</table>
+					</div>
+				</div>
+				<div class="col-md-8">
+					<h3>Peta</h3>
+					<div id="map-canvas"></div>
+{{#defer}}
+<!--[if lte IE 8]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.ie.css" /><![endif]-->
+<script src="http://cdn.leafletjs.com/leaflet-0.7/leaflet.js"></script>
+<script src="/js/heatmap.min.js"></script>
+<script src="/js/leaflet-heatmap.js"></script>
+
+<script>
+var heatmapData = {{{heatmapJSON}}};
+var layer;
+$(function() {
+  var baseLayer = L.tileLayer('http://a.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+  });
+
+  var heatmapLayer = new HeatmapOverlay({
+		radius: 100,
+		// scaleRadius: true,
+		maxOpacity: 0.8,
+		valueField: 'value'
+	});
+
+	var map = L.map('map-canvas', {
+		center: [-3, 120],
+		zoom: 4,
+		layers: [baseLayer, heatmapLayer]
+	});
+
+	heatmapLayer.setData(heatmapData);
+
+	layer = heatmapLayer;
+})
+</script>
+{{/defer}}
+				</div>
+			</div>
+		</section>
+
+		<section class="infobox-collection">
+			<h3>Tentang indikator ini</h3>
+{{!-- 			<div>
+				<table class="table">
+					{{#each resource}}
+					<tr>
+						<th>{{@key}}<th>
+						<td>{{ldObject this}}</td>
+					</tr>
+					{{/each}}
+				</table>
+			</div> --}}
+			<div class="row">
+				<div class="col-md-4">
+					<h4>Perioda yang Tersedia</h4>
+					{{#each periods}}
+					<a href="?bm:refPeriod={{this}}">{{this}}</a>
+					{{/each}}
+				</div>
+				<div class="col-md-4">
+					<h4>Kumpulan Data</h4>
+				</div>
+				<div class="col-md-4">
+					<h4>Tentang</h4>
+					{{#if rdfs:comment}}
+					{{#markdown}}{{rdfs:comment}}{{/markdown}}
+					{{else}}
+					<p class="fallback">Tidak ada keterangan mengenai indikator ini.</p>
+					{{/if}}
+					<h4>Metodologi</h4>
+					{{#if bm:methodology}}
+					{{#markdown}}{{bm:methodology}}{{/markdown}}
+					{{else}}
+					<p class="fallback">Tidak ada penjelasan mengenai metodologi indikator ini.</p>
+					{{/if}}
+				</div>
+			</div>
+		</section>
+	</article>
+</div>

@@ -572,3 +572,27 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
       return callback(null, datasets);
     });
 };
+
+shared.addRank = function(items, sortKey) {
+  var previousValue, lastRank;
+  var index = 1;
+
+  _.forEach(items, function(item) {
+    var rank, sameAsPrevious;
+    var sortValue = shared.getLdValue(item[sortKey]);
+
+    if (previousValue === sortValue) {
+      rank = lastRank;
+      sameAsPrevious = true;
+    }
+    else {
+      rank = index;
+      sameAsPrevious = false;
+    }
+
+    item.rank = rank;
+    item.sameAsPrevious = sameAsPrevious;
+
+    ++index;
+  })
+};

@@ -53,6 +53,12 @@ body {
 p {
   // font-weight: 300;
 }
+
+.more-info {
+  font-size: @font-size-small;
+  margin-left: 2px;
+}
+
 .site-header {
   padding: 15px 0;
   border-bottom: 1px solid @gray-lighter;
@@ -354,7 +360,7 @@ body > .content {
         }
         .view-toggle {
           float: right;
-          margin-bottom: 15px;
+          margin-top: 7px;
         }
       }
       .infobox-body {
@@ -406,6 +412,11 @@ body > .content {
           .content-columns(2);
         }
       }
+    }
+
+    .leaderboard {
+      max-height: 360px;
+      overflow-y: auto;
     }
   }
 }

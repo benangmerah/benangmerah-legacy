@@ -7,6 +7,7 @@ var cache = require('memory-cache');
 var config = require('config');
 var n3util = require('n3').Util;
 var _ = require('lodash');
+var _s = require('underscore.string');
 
 var shared = require('../shared');
 var context = shared.context;
@@ -28,6 +29,11 @@ function derefOntology(req, res, next) {
 function describeInternalResource(req, res, next) {
   var originalUrl = req.originalUrl;
   originalUrl = originalUrl.split('?')[0];
+
+  if (_s.endsWith(originalUrl, '/')) {
+    return res.redirect(_s.rtrim(originalUrl, '/'));
+  }
+
   req.resourceURI = 'http://benangmerah.net' + originalUrl;
   req.url = req.resourceURI;
   next();
@@ -283,6 +289,161 @@ function describeThing(req, res, next) {
   async.waterfall([execDescribeQuery], render);
 }
 
+function describeIndicator(req, res, next) {
+  var selectedPeriod = req.query['bm:refPeriod'];
+  var heatmapData = { max: 1, data: [] };
+  var maxValue = 0;
+  var rankings, periods, rankingsGraph;
+
+  function execPeriodsQuery(callback) {
+    var baseQuery =
+      'select distinct ?year { graph ?g {' +
+      '  [] a qb:Observation;' +
+      '     <%s> [];' +
+      '     bm:refPeriod ?year.' +
+      '  } }' +
+      'order by desc(?year)';
+
+    var periodsQuery = util.format(baseQuery, req.resourceURI);
+
+    conn.getCol(periodsQuery, function(err, col) {
+      if (err) {
+        return callback(err);
+      }
+
+      periods = _.pluck(col, 'value');
+
+      if (!selectedPeriod || !_.contains(periods, selectedPeriod)) {
+        selectedPeriod = periods[0];
+      }
+
+      callback();
+    });
+  }
+
+  function execRankQuery(callback) {
+    var baseQuery =
+      'construct {' +
+      '  ?x bm:value ?val;' +
+      '    a qb:Observation;' +
+      '    bm:refArea ?area.' +
+      '  ?area rdfs:label ?o;' +
+      '    geo:lat ?lat;' +
+      '    geo:long ?long.' +
+      '}' +
+      'where {' +
+      '  graph ?g {' +
+      '    ?x a qb:Observation;' +
+      '      bm:refPeriod "%s"^^xsd:gYear;' +
+      '      <%s> ?val;' +
+      '    bm:refArea ?areax.' +
+      '  }' +
+      '  graph ?h {' +
+      '    ?area owl:sameAs ?areax.' +
+      '    ?area rdfs:label ?o;' +
+      '      geo:lat ?lat;' +
+      '      geo:long ?long.' +
+      '  }' +
+      '  filter (lang(?o) = "") ' +
+      '}' +
+      'order by desc(?val)';
+    var rankQuery = util.format(baseQuery, selectedPeriod, req.resourceURI);
+
+    conn.getGraph({
+      query: rankQuery,
+      form: 'compact',
+      context: shared.context,
+      limit: 50000
+    }, function(err, data) {
+      if (err) {
+        return callback(err);
+      }
+
+      rankingsGraph = shared.pointerizeGraph(data);
+
+      rankings = [];
+      _.forEach(rankingsGraph['@graph'], function(val) {
+        if (val['@type'] !== 'qb:Observation') {
+          return;
+        }
+
+        var idx = _.sortedIndex(rankings, val, function(v) {
+          var sortValue;
+          if (v['bm:value']['@type'] === 'xsd:decimal') {
+            sortValue = parseFloat(v['bm:value']['@value']);
+          }
+          else {
+            sortValue = shared.getLdValue(v['bm:value']);
+          }
+
+          if (sortValue > maxValue) {
+            maxValue = sortValue;
+          }
+
+          return sortValue;
+        });
+
+        generateHeatmap(val);
+
+        rankings.splice(idx, 0, val);
+      });
+
+      rankings.reverse();
+
+      heatmapData.max = maxValue;
+
+      callback();
+    });
+  }
+
+  function generateHeatmap(observation) {
+    var area = observation['bm:refArea'];
+    var lat = area['geo:lat'];
+    var lng = area['geo:long'];
+    var value = parseFloat(shared.getLdValue(observation));
+    heatmapData.data.push({
+      lat: lat, lng: lng, value: value
+    });
+  }
+
+  function execDescribeQuery(callback) {
+    var baseQuery = 'construct { <%s> ?p ?o } ' +
+                    'where { graph ?g { <%s> ?p ?o } }';
+    var describeQuery =
+      util.format(baseQuery, req.resourceURI, req.resourceURI);
+
+    conn.getGraph({
+      query: describeQuery,
+      form: 'compact',
+      context: shared.context
+    }, function(err, data) {
+      callback(err, data);
+    });
+  }
+
+  function render(err, data) {
+    if (err) {
+      return next(err);
+    }
+
+    var resource = _.extend({}, data);
+    delete resource['@context'];
+
+    var title = shared.getPreferredLabel(data);
+
+    res.render('ontology/indicator', {
+      title: title,
+      resource: resource,
+      rankings: rankings,
+      periods: periods,
+      selectedPeriod: selectedPeriod,
+      heatmapJSON: JSON.stringify(heatmapData)
+    });
+  }
+
+  async.waterfall([execPeriodsQuery, execRankQuery, execDescribeQuery], render);
+}
+
 function sameAsFallback(req, res, next) {
   if (!req.resourceURI) {
     return next();
@@ -312,5 +473,6 @@ router.all('/resource/:resourceURI', describeExternalResource);
 
 router.all('*', forOntClass('bm:Place'), describePlace);
 router.all('*', forOntClass('qb:DataSet'), describeDataset);
+router.all('*', forOntClass('qb:MeasureProperty'), describeIndicator);
 router.all('*', forOntClass('owl:Thing'), describeThing);
 router.all('*', forOntClass(), sameAsFallback);
