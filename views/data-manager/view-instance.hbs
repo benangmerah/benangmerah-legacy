@@ -1,35 +1,45 @@
 <div class="content">
 	<header>
-		<h1>Data Manager</h1>
-		<h2>View Instance</h2>
+		<h1>{{[@id]}}</h1>
+		<h2>{{rdfs:label}}</h2>
 	</header>
 
-	<h2>{{rdfs:label}}</h2>
-	<p>
-		<a class="btn btn-default pull-left" href="/data-manager/instance/edit/{{encodeURI [@id]}}">Edit</a>
-		<form action="/data-manager/instance/fetch/{{encodeURI [@id]}}" method="POST" class="form-inline pull-left">
-			<button type="submit" class="btn btn-default">Fetch</button>
-		</form>
-		<form action="/data-manager/instance/clear/{{encodeURI [@id]}}" method="POST" class="form-inline pull-left">
-			<button type="submit" class="btn btn-warning">Clear</button>
-		</form>
-		<form action="/data-manager/instance/delete/{{encodeURI [@id]}}" method="POST" class="form-inline pull-left">
-			<button type="submit" class="btn btn-danger">Delete</button>
-		</form>
-	</p>
+	<div class="row">
+		<div class="col-md-4">
+			<h4>Actions</h4>
+			<div class="instance-actions">
+				<a class="btn btn-default" href="/data-manager/instance/edit/{{encodeURI [@id]}}">Edit</a>
+				<form action="/data-manager/instance/fetch/{{encodeURI [@id]}}" method="POST" class="form-inline">
+					<button type="submit" class="btn btn-default">Fetch</button>
+				</form>
+				<form action="/data-manager/instance/clear/{{encodeURI [@id]}}" method="POST" class="form-inline">
+					<button type="submit" class="btn btn-warning">Clear</button>
+				</form>
+				<form action="/data-manager/instance/delete/{{encodeURI [@id]}}" method="POST" class="form-inline">
+					<button type="submit" class="btn btn-danger">Delete</button>
+				</form>
+			</div>
+		</div>
+		<div class="col-md-4">
+			<h4>Driver</h4>
+			<p>{{bm:driverName}}</p>
+		</div>
+		<div class="col-md-4">
+			<h4>Description</h4>
+			{{#markdown}}{{rdfs:comment}}{{/markdown}}
+		</div>
+	</div>
 
 	<br clear="all">
-
-	{{#markdown}}{{rdfs:comment}}{{/markdown}}
 
 	<section class="log">
 		<h4>Instance log</h4>
 		<table class="table">
 			<thead>
 				<tr>
-					<th>Time</th>
-					<th>Level</th>
-					<th>Message</th>
+					<th width="20%">Time</th>
+					<th width="20%">Level</th>
+					<th width="60%">Message</th>
 				</tr>
 			</thead>
  			{{#each log}}

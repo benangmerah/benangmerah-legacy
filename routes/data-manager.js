@@ -189,6 +189,7 @@ function initDataManager(callback, force) {
 
   var dependencies = require('../package').dependencies;
 
+  availableDrivers = [];
   Object.keys(dependencies).forEach(function(key) {
     if (/^benangmerah-driver-/.test(key)) {
       availableDrivers.push(key);
