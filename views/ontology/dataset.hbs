@@ -2,7 +2,7 @@
 	{{#with resource}}
 	<article class="resource">
 		<header>
-			<h1>Tentang kumpulan data</h1>
+			<h1>Kumpulan Data</h1>
 			<h2>{{preferredLabel}}</h2>
 		</header>
 
@@ -21,10 +21,10 @@
 						<td>{{link [@id]}}</td>
 					</tr>
 					{{/if}}
-					{{#if dc:publisher}}
+					{{#if dct:publisher}}
 					<tr>
-						<th>Pranala</th>
-						<td>{{ldObject [@id]}}</td>
+						<th>Penerbit</th>
+						<td>{{ldObject dct:publisher}}</td>
 					</tr>
 					{{/if}}
 				</table>

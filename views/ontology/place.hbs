@@ -5,12 +5,33 @@
 			<h2>{{#is thisPlace.[@type] 'bm:Provinsi'}}Provinsi{{/is}} {{title}}</h2>
 		</header>
 
+		<section class="place-summary">
+			<div class="row">
+				<div class="col-md-3">
+					<h4>Jumlah Penduduk</h4>
+					<p class="quick-stat">1.000.000 <span>jiwa</span></p>
+				</div>
+				<div class="col-md-3">
+					<h4>Tingkat Kemiskinan</h4>
+					<p><span class="quick-stat">4,95%</span></p>
+				</div>
+				<div class="col-md-3">
+					<h4>Angka Harapan Hidup</h4>
+					<p><span class="quick-stat">69,85 <span>tahun</span></span></p>
+				</div>
+				<div class="col-md-3">
+					<h4>Inflasi Daerah</h4>
+					<p><span class="quick-stat">6%</span></p>
+				</div>
+			</div>
+		</section>
 		<div class="row">
-			<div class="col-lg-9 col-md-8">
+			<div class="col-md-9">
+
 				{{#ifCollection datasets}}
 				<section class="infobox-collection">
 					<header>
-						<h3>Kumpulan data</h3>
+						<h3>Rincian Indikator Pembangunan</h3>
 					</header>
 					{{#each datasets}}
 					<section class="infobox">
@@ -46,23 +67,40 @@
 				{{#ifCollection qbDatasets}}
 				<section class="infobox-collection">
 					<header>
-						<h3>Kumpulan data</h3>
+						<h3>Rincian Indikator Pembangunan</h3>
 					</header>
 					{{#each qbDatasets}}
 					<section class="infobox">
-						<h4>{{preferredLabel}}</h4>
-						{{datacubeTable class="table table-striped table-bordered"}}
+						<header>
+							<h4>{{preferredDatasetLabel}}</h4>
+							<div class="view-toggle">
+								<div class="btn-group">
+									<a class="btn btn-default" href="#"><i class="glyphicon glyphicon-stats"></i></a>
+									<a class="btn btn-default active" href="#"><i class="glyphicon glyphicon-list"></i></a>
+								</div>
+							</div>
+						</header>
+						<div class="infobox-body">
+							{{datacubeTable class="table table-striped table-bordered"}}
+						</div>
 						<footer>
 							<address class="source">Sumber: {{descriptionLink [@id]}}</address>
 						</footer>
 					</section>
 					{{/each}}
 				</section>
+				{{else}}
+				<section class="infobox-collection">
+					<header>
+						<h3>Rincian Indikator Pembangunan</h3>
+					</header>
+					<p>Belum ada data indikator pembangunan untuk daerah ini.</p>
+				</section>
 				{{/ifCollection}}
 
 				{{#if thisPlace.geo:lat}}
 				<section class="infobox-collection on-map">
-					<h3>Letak geografis</h3>
+					<h3>Letak Geografis</h3>
 					{{>map thisPlace}}
 				</section>
 				{{/if}}

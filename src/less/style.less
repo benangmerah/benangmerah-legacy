@@ -39,6 +39,7 @@
   }
   h1 {
     .h4;
+    font-weight: 300;
     color: @gray-light;
     margin: 0 0 5px 0;
   }
@@ -50,7 +51,7 @@ body {
   // background: #f9f9f9;
 }
 p {
-  font-weight: 300;
+  // font-weight: 300;
 }
 .site-header {
   padding: 15px 0;
@@ -85,6 +86,11 @@ p {
       font-size: @font-size-base;
       font-style: normal;
       text-transform: uppercase;
+    }
+
+    > span.data-manager {
+      font-weight: 300;
+      color: @gray-light;
     }
   }
 }
@@ -310,21 +316,7 @@ body > .content {
 .content.resource {
   article {
     & > header {
-      padding: 45px 15px;
-      margin: -30px -15px 30px;
-      border-bottom: 1px solid @gray-lighter;
-
-      h1 {
-        .h4;
-        color: @gray-light;
-        margin: 0 0 5px 0;
-      }
-      h2 {
-        .h1;
-        color: #000;
-        margin: 0;
-        font-weight: 300;
-      }
+      .page-header();
     }
 
     .infobox-collection {
@@ -336,21 +328,48 @@ body > .content {
       margin-bottom: 0;
       border-bottom: 0 none;
     }
-
-    .infobox {
-      margin-bottom: 15px;
+    .place-summary {
+      .infobox-collection;
 
       h4 {
-        margin-bottom: 15px;
-        .source-link {
+        margin-top: 0;
+      }
+
+      .quick-stat {
+        font-size: @font-size-h2;
+        font-weight: 300;
+        span {
+          color: @gray-light;
+        }
+      }
+    }
+
+    .infobox {
+      margin-bottom: 30px;
+
+      header {
+        h4 {
+          margin-bottom: 15px;
+          float: left;
+        }
+        .view-toggle {
           float: right;
-          font-weight: 300;
+          margin-bottom: 15px;
+        }
+      }
+      .infobox-body {
+        clear: both;
+        overflow-x: auto;
+        margin-bottom: 15px;
+        table {
+          margin-bottom: 0;
         }
       }
       address.source {
         font-size: @font-size-small;
         color: @gray;
       }
+
     }
 
     .description {
@@ -393,4 +412,11 @@ body > .content {
 
 .content > header {
   .page-header();
+}
+
+.instance-actions {
+  > * {
+    float: left;
+    margin-right: 10px;
+  }
 }
