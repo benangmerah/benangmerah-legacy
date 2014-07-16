@@ -71,7 +71,9 @@ function describePlace(req, res, next) {
 
   function getParent(callback) {
     var parentQuery = util.format(
-      'describe ?parent where { <%s> bm:hasParent ?parent }',
+      'construct { ?parent ?x ?y } ' +
+      'where { graph ?g { ' +
+      '<%s> bm:hasParent ?parent. ?parent ?x ?y } }',
       req.resourceURI
     );
 
