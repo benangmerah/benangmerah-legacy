@@ -4,6 +4,7 @@
 var entities = require('entities');
 var traverse = require('traverse');
 var _ = require('lodash');
+var _s = require('underscore.string');
 
 var shared = require('./shared');
 var Handlebars = require('hbs').handlebars;
@@ -13,7 +14,14 @@ require('helper-moment').register(Handlebars, {});
 var helpers = module.exports;
 
 helpers.ldValue = function(value) {
-  return shared.getLdValue(value);
+  var theValue = shared.getLdValue(value);
+  if (value['@type'] === 'xsd:decimal') {
+    var dot = theValue.indexOf('.');
+    var decimals = (dot > -1) ? theValue.length - 1 - dot : 0;
+    return _s.numberFormat(parseFloat(theValue), decimals, ',', '.');
+  }
+
+  return theValue;
 };
 
 // Show a preferred label based on locale and other heuristics
@@ -27,6 +35,24 @@ helpers.preferredLabel = function(resource, options) {
 
   return shared.getPreferredLabel(resource);
 };
+
+helpers.preferredDatasetLabel = function(resource, options) {
+  if (arguments.length === 1) {
+    resource = this;
+  }
+  else {
+    resource = arguments[0];
+  }
+
+  var preferredLabel = shared.getPreferredLabel(resource);
+
+  var perIndex = preferredLabel.toLowerCase().indexOf(' per ');
+  if (perIndex > -1) {
+    return preferredLabel.substring(0, perIndex);
+  }
+
+  return preferredLabel;
+}
 
 helpers.descriptionLink = function(value, lbl, options) {
   var hash = (options && options.hash) || {};
