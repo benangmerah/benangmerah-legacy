@@ -9,6 +9,7 @@ var _ = require('lodash');
 var traverse = require('traverse');
 var jsonld = require('jsonld');
 var async = require('async');
+var naturalSort = require('javascript-natural-sort');
 
 var cacheLifetime = config.cacheLifetime;
 
@@ -21,6 +22,7 @@ shared.XSD_NS = 'http://www.w3.org/2001/XMLSchema#';
 shared.GEO_NS = 'http://www.w3.org/2003/01/geo/wgs84_pos#';
 shared.QB_NS = 'http://purl.org/linked-data/cube#';
 shared.BM_NS = 'http://benangmerah.net/ontology/';
+shared.DCT_NS = 'http://purl.org/dc/terms/';
 
 shared.context = shared.prefixes = {
   'rdf': shared.RDF_NS,
@@ -29,7 +31,8 @@ shared.context = shared.prefixes = {
   'xsd': shared.XSD_NS,
   'geo': shared.GEO_NS,
   'qb': shared.QB_NS,
-  'bm': shared.BM_NS
+  'bm': shared.BM_NS,
+  'dct': shared.DCT_NS
 };
 
 shared.getInferredTypes = function(uri, callback) {
@@ -544,7 +547,11 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
     });
 
     dataset.dimensions.forEach(function(dimension) {
-      dimension.values = _.sortBy(dimension.values, shared.getLdValue);
+      dimension.values = dimension.values.sort(function(a, b) {
+        var valA = shared.getLdValue(a);
+        var valB = shared.getLdValue(b);
+        return naturalSort(valA, valB);
+      });
     });
 
     callback(null, dataset);
