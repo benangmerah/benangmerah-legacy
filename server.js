@@ -16,8 +16,8 @@ var bodyParser = require('body-parser');
 var methodOverride = require('method-override');
 var serveStatic = require('serve-static');
 var errorHandler = require('errorhandler');
+var outputCache = require('express-output-cache');
 
-var shared = require('./shared');
 var helpers = require('./helpers');
 var routes = require('./routes');
 var ontologyRoutes = require('./routes/ontology');
@@ -63,11 +63,20 @@ app.use(serveStatic(__dirname + '/public'));
 
 // app router
 app.use('/data-manager', dataManager);
-app.use(shared.outputCache(config.outputCache));
+app.use(outputCache(config.outputCache));
 app.use(routes);
 app.use(ontologyRoutes);
 
-// express: error handler
+// debugging
+outputCache.on('hit', function(key, req) {
+  console.log('cache HIT: ' + req.originalUrl);
+});
+outputCache.on('miss', function(key, req) {
+  console.log('cache MISS: ' + req.originalUrl);
+});
+outputCache.on('save', function(key, obj) {
+  console.log('cache SAVE: ' + obj.body.length);
+});
 if ('development' == app.get('env')) {
   app.use(errorHandler({ dumpExceptions: true, showStack: true }));
 }

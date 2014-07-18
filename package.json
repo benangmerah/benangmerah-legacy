@@ -36,6 +36,6 @@
     "benangmerah-driver-datagoid": "benangmerah/data.go.id-ld",
     "benangmerah-driver-wilayah": "benangmerah/wilayah",
     "benangmerah-driver-mp3ei": "benangmerah/mp3ei-ld",
-    "redis": "^0.11.0"
+    "express-output-cache": "^0.1.0"
   }
 }
