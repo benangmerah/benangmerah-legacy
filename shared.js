@@ -10,6 +10,7 @@ var traverse = require('traverse');
 var jsonld = require('jsonld');
 var async = require('async');
 var naturalSort = require('javascript-natural-sort');
+var redis = require('redis');
 
 var cacheLifetime = config.cacheLifetime;
 
@@ -34,6 +35,104 @@ shared.context = shared.prefixes = {
   'bm': shared.BM_NS,
   'dct': shared.DCT_NS
 };
+
+shared.redisClient = redis.createClient();
+
+shared.outputCache = function(options) {
+  options = _.defaults(options || {}, {
+    prefix: 'outputcache:',
+    ttl: 60,
+    getCacheKey: function(req) {
+      return options.prefix + req.originalUrl;
+    },
+    shouldCheckCache: function(req) {
+      return true;
+    }
+  });
+
+  options.ttl = parseInt(options.ttl);
+
+  return function(req, res, next) {
+    // Should we check the cache?
+    if (!options.shouldCheckCache(req)) {
+      return;
+    }
+
+    // Check cache
+    var client = shared.redisClient;
+    var cacheKey = options.getCacheKey(req);
+
+    client.get(cacheKey, function(err, data) {
+      if (err) {
+        return next(err);
+      }
+
+      if (data) {
+        try {
+          var dataObj = JSON.parse(data);
+          res.statusCode = dataObj.statusCode;
+          res.set(dataObj.headers);
+          res.send(dataObj.body);
+        }
+        catch (e) {
+          client.del(cacheKey)
+          next();
+        }
+
+        return;
+      }
+
+      var headers = {};
+
+      var _setHeader = res.setHeader;
+      res.setHeader = function(name, value) {
+        headers[name] = value;
+        _setHeader.call(this, name, value);
+      }
+
+      var _send = res.send;
+      res.send = function(status, body) {
+        if (!body) {
+          body = status;
+        }
+        else if (status >= 400) {
+          return _send.apply(this, arguments);
+        }
+
+        res.cacheBody = body;
+        _send.apply(this, arguments);
+      }
+
+      var _end = res.end;
+      res.end = function(chunk, encoding) {
+        var self = this;
+        var args = arguments;
+        if (res.statusCode >= 400 || !res.cacheBody) {
+          console.log('No store cache');
+          _end.apply(self, args);
+          return;
+        }
+
+        var cacheObj = {
+          headers: headers,
+          body: res.cacheBody,
+          statusCode: res.statusCode
+        }
+        client.set(cacheKey, JSON.stringify(cacheObj), function(err) {
+          if (err) {
+            return;
+          }
+
+          client.expire(cacheKey, options.ttl);
+        });
+
+        _end.apply(self, args);
+      }
+
+      next();
+    });
+  }
+}
 
 shared.getInferredTypes = function(uri, callback) {
   // Search cache

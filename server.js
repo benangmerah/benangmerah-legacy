@@ -17,7 +17,7 @@ var methodOverride = require('method-override');
 var serveStatic = require('serve-static');
 var errorHandler = require('errorhandler');
 
-// local express-related modules
+var shared = require('./shared');
 var helpers = require('./helpers');
 var routes = require('./routes');
 var ontologyRoutes = require('./routes/ontology');
@@ -62,8 +62,9 @@ app.use('/css', lessMiddleware(
 app.use(serveStatic(__dirname + '/public'));
 
 // app router
-app.use(routes);
 app.use('/data-manager', dataManager);
+app.use(shared.outputCache(config.outputCache));
+app.use(routes);
 app.use(ontologyRoutes);
 
 // express: error handler
