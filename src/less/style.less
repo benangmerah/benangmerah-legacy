@@ -8,7 +8,14 @@
 @import url(http://fonts.googleapis.com/css?family=Roboto:400,300,300italic,400italic,500,500italic,700,700italic);
 
 // Import bootstrap
-@import "bootstrap.less";
+@import "bootstrap/bootstrap.less";
+
+// Variables
+@base-red:       #ee0000;
+@bright-red:     #ff0000;
+@brand-primary:  @base-red;
+@font-family-main: Roboto, @font-family-sans-serif;
+@font-family-base: @font-family-main;
 
 // Custom mixins
 .container-responsive() {
@@ -72,7 +79,6 @@ p {
     .container-responsive();
     margin-top: 0;
     margin-bottom: 0;
-    font-family: Roboto;
     font-weight: 500;
     font-size: 26px;
     .narrow-kerning();
@@ -134,7 +140,6 @@ body > .content {
 
 .content.home {
   .positioning {
-    font-family: @font-family-accent;
     font-weight: 300;
     font-size: 30px;
     line-height: 1.15;

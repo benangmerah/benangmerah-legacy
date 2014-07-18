@@ -44,7 +44,6 @@ for (var helper in helpers) {
   hbs.registerHelper(helper, helpers[helper]);
 }
 
-app.engine('handlebars', hbs.__express);
 app.set('view engine', 'hbs');
 app.set('view options', { layout: 'layouts/main' });
 
@@ -56,9 +55,9 @@ app.use(methodOverride());
 app.use('/css', lessMiddleware(
   __dirname + '/src/less',
   { dest: __dirname + '/public/css',
-    force: (app.get('env') === 'development') },
-  {},
-  { compress: ('development' !== app.get('env')) }
+    force: (app.get('env') === 'development'),
+    compiler: {
+      compress: ('development' !== app.get('env')) } }
 ));
 app.use(serveStatic(__dirname + '/public'));
 
