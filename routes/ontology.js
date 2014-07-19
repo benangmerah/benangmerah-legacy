@@ -168,6 +168,9 @@ function describePlace(req, res, next) {
 
       // TEMP
       datasets.forEach(function(dataset) {
+        if (!dataset.dimensions) {
+          return;
+        }
         var test = shared.getLdValue(dataset.dimensions[0].values[0])[0];
         if (test.match(/[0-9]/)) {
           dataset.chartable = true;
