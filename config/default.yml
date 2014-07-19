@@ -3,3 +3,5 @@ stardog:
   database: myDB
   username: admin
   password: admin
+  cache: true
+redis: true
