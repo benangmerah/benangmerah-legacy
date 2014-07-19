@@ -501,3 +501,7 @@ module.exports.logLevelClass = function(logLevel, options) {
     return 'info';
   }
 }
+
+module.exports.json = function(value) {
+  return new Handlebars.SafeString(JSON.stringify(value));
+}

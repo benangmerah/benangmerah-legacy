@@ -552,6 +552,13 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
         var valB = shared.getLdValue(b);
         return naturalSort(valA, valB);
       });
+
+      var id = dimension['@id'];
+      dataset.observations = dataset.observations.sort(function(a, b) {
+        var valA = shared.getLdValue(a[id]);
+        var valB = shared.getLdValue(b[id]);
+        return naturalSort(valA, valB);
+      });
     });
 
     callback(null, dataset);
