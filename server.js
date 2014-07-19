@@ -86,9 +86,6 @@ app.set('view options', { layout: 'layouts/main' });
 // express: middleware before routing
 app.use(favicon(__dirname + '/public/favicon.ico'));
 app.use(logger('dev'));
-app.use(serveStatic(__dirname + '/public'));
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(methodOverride());
 app.use('/css', lessMiddleware(
   __dirname + '/src/less',
   { dest: __dirname + '/public/css',
@@ -96,6 +93,9 @@ app.use('/css', lessMiddleware(
     compiler: {
       compress: ('development' !== app.get('env')) } }
 ));
+app.use(serveStatic(__dirname + '/public'));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(methodOverride());
 
 // Data Manager - do not cache
 app.use('/data-manager', dataManager);
