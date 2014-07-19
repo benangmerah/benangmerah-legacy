@@ -168,7 +168,7 @@ function describePlace(req, res, next) {
 
       // TEMP
       datasets.forEach(function(dataset) {
-        if (!dataset.dimensions) {
+        if (!dataset.dimensions[0]) {
           return;
         }
         var test = shared.getLdValue(dataset.dimensions[0].values[0])[0];
