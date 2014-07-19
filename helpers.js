@@ -402,6 +402,12 @@ helpers.datacubeTable = function(dataset, options) {
   return new Handlebars.SafeString(output);
 };
 
+helpers.not = function(value, options) {
+  if (!value) {
+    return options.fn(this);
+  }
+}
+
 helpers.input = function(property, options) {
   var hash = (options && options.hash) || {};
   var attrs = [];

@@ -22,7 +22,19 @@
   </head>
   <body>
     <header class="site-header">
-      <h1><a href="/">Benang<span>Merah</span></a> <i>beta</i></h1>
+      <div class="container">
+        <h1><a href="/">Benang<span>Merah</span></a> <i>beta</i></h1>
+        {{#not searchQuery}}
+        <form class="site-search" role="form" action="/search">
+          <div class="input-group">
+            <input type="search" class="form-control" placeholder="Pencarian" name="q">
+            <div class="input-group-btn">
+              <button type="submit" class="btn btn-primary"><i class="glyphicon glyphicon-search"></i></button>
+            </div>
+          </div>
+        </form>
+        {{/not}}
+      </div>
     </header>
 
     {{{body}}}

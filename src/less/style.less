@@ -16,6 +16,10 @@
 @brand-primary:  @base-red;
 @font-family-main: Roboto, @font-family-sans-serif;
 @font-family-base: @font-family-main;
+@input-border-focus: @gray-light;
+@border-radius-base: 2px;
+@border-radius-large: @border-radius-base;
+@border-radius-small: @border-radius-base;
 
 // Custom mixins
 .container-responsive() {
@@ -31,7 +35,7 @@
 	}
 }
 .narrow-kerning {
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
 }
 .page-header() {
   padding: 45px 15px;
@@ -75,34 +79,45 @@ p {
     padding: 30px 0;
   }
 
-  h1 {
-    .container-responsive();
-    margin-top: 0;
-    margin-bottom: 0;
-    font-weight: 500;
-    font-size: 26px;
-    .narrow-kerning();
+  .container {
+    padding-left: 0;
+    padding-right: 0;
 
-    a {
-      color: black;
+    h1 {
+      float: left;
+      margin: 0;
+      line-height: 1;
+      font-size: @font-size-h3;
+      padding: 5px (@grid-gutter-width / 2);
 
-      span {
-        color: @brand-primary;
+      a {
+        .narrow-kerning();
+        color: black;
+
+        span {
+          color: @brand-primary;
+        }
+      }
+
+      i {
+        font-weight: normal;
+        letter-spacing: 0;
+        color: @gray-lighter;
+        font-size: @font-size-base;
+        font-style: normal;
+        text-transform: uppercase;
+      }
+
+      > span.data-manager {
+        font-weight: 300;
+        color: @gray-light;
       }
     }
 
-    i {
-      font-weight: normal;
-      letter-spacing: 0;
-      color: @gray-lighter;
-      font-size: @font-size-base;
-      font-style: normal;
-      text-transform: uppercase;
-    }
-
-    > span.data-manager {
-      font-weight: 300;
-      color: @gray-light;
+    .site-search {
+      float: right;
+      width: 25%;
+      padding: 0 (@grid-gutter-width / 2);
     }
   }
 }
@@ -372,8 +387,8 @@ body > .content {
         clear: both;
         overflow-x: auto;
         margin-bottom: 15px;
-        table {
-          margin-bottom: 0;
+        > * {
+          margin: 0;
         }
       }
       address.source {
@@ -422,6 +437,30 @@ body > .content {
     .leaderboard {
       max-height: 360px;
       overflow-y: auto;
+    }
+  }
+}
+
+.content.search {
+  > header {
+    padding-top: 30px;
+    padding-bottom: 30px;
+    form {
+      width: 600px;
+      input {
+        color: #000;
+        font-weight: 500;
+      }
+    }
+  }
+  .filter-selection, .results-list {
+    h2 {
+      font-size: @font-size-h4;
+      font-weight: 300;
+      margin-bottom: 15px;
+    }
+    h3 {
+      font-size: @font-size-h4;
     }
   }
 }

@@ -1,0 +1,24 @@
+<div class="content search">
+	<header>
+	  <form class="form" role="form" action="/search">
+	    <div class="input-group">
+	      <input type="search" class="form-control input-lg" placeholder="Pencarian" name="q" value="{{searchQuery}}">
+	      <div class="input-group-btn">
+	        <button type="submit" class="btn btn-lg btn-primary"><i class="glyphicon glyphicon-search"></i></button>
+	      </div>
+	    </div>
+	  </form>
+	</header>
+
+	<div class="results-list">
+		<h2>{{searchResults.length}} hasil ditemukan</h2>
+		{{#each searchResults}}
+		<article class="search-result">
+			<h3>{{ldObject this}}</h3>
+			{{#if rdfs:comment}}
+			<p>{{rdfs:comment}}</p>
+			{{/if}}
+		</article>
+		{{/each}}
+	</div>
+</div>
