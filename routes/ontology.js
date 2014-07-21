@@ -166,20 +166,6 @@ function describePlace(req, res, next) {
 
       vars.qbDatasets = datasets;
 
-      // TEMP
-      datasets.forEach(function(dataset) {
-        if (!dataset.dimensions[0]) {
-          return;
-        }
-        var test = shared.getLdValue(dataset.dimensions[0].values[0])[0];
-        if (test.match(/[0-9]/)) {
-          dataset.chartable = true;
-          dataset.chartId =
-            'chart-' +dataset['@id'].replace(/[^a-zA-Z0-9]/g, '');
-        }
-      });
-      // /TEMP
-
       callback();
     });
   }
