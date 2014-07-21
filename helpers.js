@@ -386,7 +386,10 @@ helpers.datacubeTable = function(dataset, options) {
       output += '\n    <tr>';
       output += '\n      <th>' + measureText + '</th>';
       traverse(dataset.datacube).forEach(function() {
-        if (this.level === dimensions.length) {
+        if (this.level < dimensions.length) {
+          this.keys = dataset.dimensions[this.level].literalValues;
+        }
+        else if (this.level === dimensions.length) {
           var text = helpers.ldObject(this.node[measureId]);
           output += '\n      <td>' + text + '</td>';
         }
