@@ -1,5 +1,20 @@
 var bm = {};
 
+bm.d3locale = d3.locale({
+  decimal: ',',
+  thousands: '.',
+  grouping: [3],
+  currency: ['Rp', ''],
+  dateTime: '%a %b %e %X %Y',
+  date: '%d/%m/%Y',
+  time: '%H:%M:%S',
+  periods: ['AM', 'PM'],
+  days: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
+  shortDays: ['Mgg', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+  months: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+  shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des']
+});
+
 bm.getLdValue = function(ldObj) {
   if (typeof ldObj == 'string') {
     return ldObj;
@@ -192,10 +207,12 @@ bm.Chart.prototype.drawLineChart = function() {
 
   var line = d3.svg.line().x(getX).y(getY);
 
+  var formatNumber = d3.format(',');
+
   var xAxis = this.xAxis = d3.svg.axis()
       .scale(x).orient('bottom');
   var yAxis = this.yAxis = d3.svg.axis()
-      .scale(y).orient('left');
+      .scale(y).orient('left').tickFormat(formatNumber);
 
   var xGridLines = this.xGridLines = d3.svg.axis()
       .scale(x).orient('bottom')
@@ -285,4 +302,172 @@ bm.Chart.prototype.resizeLineChart = function() {
   chart.select('.y.grid').call(this.yGridLines);
   chart.selectAll('.line').attr('d', line);
   chart.selectAll('circle').attr('cx', this.getX).attr('cy', this.getY);
+}
+
+bm.Chart.prototype.drawBarChart = function() {
+  var self = this;
+
+  // Setup data
+  var dataset = self.dataset;
+  var dimensionId = self.dimensionId;
+  var measureId = self.measureId;
+
+  // Setup dimensions
+  var dimension;
+  if (self.dimensionId) {
+    _.forEach(dataset.dimensions, function(dim) {
+      if (dim['@id'] === self.dimensionId) {
+        dimension = dim;
+      }
+    });
+  }
+  else {
+    dimension = dataset.dimensions[0];
+    dimensionId = dimension['@id'];
+  }
+
+  var dimensionValues = self.dimensionValues = dimension.literalValues.sort();
+  var dimensionPlot = _.invert(dimensionValues);
+
+  var measures = measureId ? [measureId] : dataset.measures;
+
+  var measureValues = {};
+  dataset.measures.forEach(function(measure) {
+    measureValues[measure['@id']] = [];
+  });
+
+  var maxValue = -Infinity;
+  var observations = dataset.observations;
+  observations.forEach(function(observation) {
+    measures.forEach(function(measure) {
+      var measureId = measure['@id'];
+      var dimensionValue = bm.getLdValue(observation[dimensionId]);
+      var value = bm.getLdValue(observation[measureId]);
+
+      measureValues[measureId].push({
+        dimensionValue: dimensionValue,
+        value: value
+      });
+
+      maxValue = value > maxValue ? value : maxValue;
+    });
+  });
+
+  // Setup chart
+  var outerWidth = self.getContainerWidth();
+  var outerHeight = self.getContainerHeight();
+  var margins = self.margins;
+
+  var chartWidth = outerWidth - margins.left - margins.right;
+  var chartHeight = outerHeight - margins.top - margins.bottom;
+
+  var formatNumber = bm.d3locale.numberFormat(',');
+
+  self.svgElement.attr('class', 'bar-chart')
+    .attr('width', outerWidth).attr('height', outerHeight);
+  var chart = self.barChart = self.svgElement.append('g')
+    .attr('transform', 'translate(' + margins.left + ',' + margins.top + ')')
+    .attr('width', chartWidth).attr('height', chartHeight);
+
+  self.xScale = d3.scale.ordinal()
+    .domain(dimensionValues)
+    .rangeRoundBands([0, chartWidth], 0.1);
+  self.yScale = d3.scale.linear()
+    .domain([0, 1.05 * maxValue])
+    .range([chartHeight,0]);
+
+  self.getX = function(d) {
+    return self.xScale(d.dimensionValue);
+  }
+  self.getY = function(d) {
+    return self.yScale(d.value);
+  }
+  self.getBarHeight = function(d) {
+    return chartHeight - self.getY(d);
+  }
+
+  // Setup axes & gridlines
+  self.xAxis = d3.svg.axis()
+    .scale(self.xScale).orient('bottom');
+  self.yAxis = d3.svg.axis()
+    .scale(self.yScale).orient('left').tickFormat(formatNumber);
+  self.yGridLines = d3.svg.axis()
+    .scale(self.yScale).orient('left')
+    .tickSize(-chartWidth, 0, 0).tickFormat('');
+
+  chart.append('g')
+    .attr('class', 'y grid')
+    .call(self.yGridLines);
+  chart.append('g')
+    .attr('class', 'x axis')
+    .attr('transform', 'translate(0,' + chartHeight + ')')
+    .call(self.xAxis);
+  chart.append('g')
+    .attr('class', 'y axis')
+    .call(self.yAxis);
+
+  _.forEach(measureValues, function(values) {
+    var bar = chart.selectAll('g.bar')
+      .data(values).enter()
+      .append('g').attr('class', 'bar')
+      .attr('transform', function(d) {
+        return 'translate(' + self.getX(d) + ',' + self.getY(d) + ')';
+      })
+      .attr('width', self.xScale.rangeBand())
+      .attr('height', self.getBarHeight);
+
+    var rect = bar.append('rect')
+      .attr('width', self.xScale.rangeBand())
+      .attr('height', self.getBarHeight);
+
+    bar.append('text')
+      .attr('x', self.xScale.rangeBand() / 2)
+      .attr('y', 0)
+      .attr('text-anchor', 'middle')
+      .attr('dy', function(d) {
+        var text = d3.select(this);
+        if (parseInt(text.style('font-size')) * 2 > self.getBarHeight(d)) {
+          text.attr('class', 'outside');
+          return '-0.75em';
+        }
+        else {
+          text.attr('class', 'inside');
+          return '2em';
+        }
+      })
+      .text(function(d) {
+        return formatNumber(d.value);
+      });
+  })
+};
+
+bm.Chart.prototype.resizeBarChart = function() {
+  var self = this;
+
+  var chart = self.barChart;
+
+  var outerWidth = self.getContainerWidth();
+  var outerHeight = self.getContainerHeight();
+  var margins = self.margins;
+
+  var chartWidth = outerWidth - margins.left - margins.right;
+  var chartHeight = outerHeight - margins.top - margins.bottom;
+
+  self.xScale.rangeRoundBands([0,chartWidth], 0.1);
+  self.yGridLines.tickSize(-chartWidth, 0, 0);
+
+  chart.select('.x.axis').call(self.xAxis);
+  chart.select('.y.axis').call(self.yAxis);
+  chart.select('.y.grid').call(self.yGridLines);
+  chart.selectAll('g.bar')
+    .attr('transform', function(d) {
+      return 'translate(' + self.getX(d) + ',' + self.getY(d) + ')';
+    });
+
+  chart.selectAll('g.bar, g.bar rect')
+    .attr('width', self.xScale.rangeBand())
+    .attr('height', self.getBarHeight);
+
+  chart.selectAll('g.bar text')
+    .attr('x', self.xScale.rangeBand() / 2);
 }
