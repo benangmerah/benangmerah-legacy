@@ -11,8 +11,8 @@
 @import "bootstrap/bootstrap.less";
 
 // Variables
-@base-red:       #ee0000;
-@bright-red:     #ff0000;
+@bright-red:     #ff3000;
+@base-red:       #ed4018;
 @brand-primary:  @base-red;
 @font-family-main: Roboto, @font-family-sans-serif;
 @font-family-base: @font-family-main;
@@ -478,23 +478,12 @@ body > .content {
 
 .chart-container {
   clear: both;
-  svg {
-    width: 100%;
-    height: 360px;
-    border: 1px solid @table-border-color;
-  }
+  border: 1px solid @table-border-color;
+  text-align: center;
+  margin-bottom: 5px;
+  height: 400px;
 
-  .line-chart {
-    .line {
-      fill: none;
-      stroke: black;
-      stroke-width: 1.5px;
-    }
-    circle {
-      fill: red;
-      stroke: white;
-      stroke-width: 1.5px;
-    }
+  svg {
     .axis path,
     .axis line {
       fill: none;
@@ -517,6 +506,72 @@ body > .content {
     }
     .grid path {
         stroke-width: 0;
+    }
+
+    &.line-chart .measure {
+      .line {
+        fill: none;
+        stroke: @bright-red;
+        stroke-width: 1.5px;
+
+        &.m0 {
+          stroke: @bright-red;
+        }
+        &.m1 {
+          stroke: #0073e6;
+        }
+        &.m2 {
+          stroke: #ff8000;
+        }
+        &.m3 {
+          stroke: #00f;
+        }
+        &.m4 {
+          stroke: #ff0080;
+        }
+        &.m5 {
+          stroke: #0f0;
+        }
+      }
+      circle {
+        fill: black;
+        stroke: white;
+        stroke-width: 1.5px;
+      }
+
+      &.hover {
+        .line {
+          stroke-width: 5px;
+        }
+        circle {
+          stroke-width: 3px;
+          fill: white;
+          stroke: black;
+        }
+      }
+    }
+    &.bar-chart {
+      g.bar {
+        fill: darken(@bright-red, 20%);
+        text {
+          fill: white;
+          font-weight: bold;
+        }
+        text.outside {
+          fill: @gray-dark;
+        }
+
+        &:hover {
+          fill: @bright-red;
+        }
+      }
+      .x.axis .tick line {
+        display: none;
+      }
+      .x.axis text {
+        fill: @gray-darker;
+        font-size: @font-size-small;
+      }
     }
   }
 }

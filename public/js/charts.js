@@ -90,100 +90,71 @@ bm.Chart.prototype.getContainerHeight = function() {
 bm.Chart.prototype.margins = { top: 15, right: 20, bottom: 30, left: 60 };
 
 bm.Chart.prototype.drawLineChart = function() {
-  var svgElement = this.svgElement;
-  var dataset = this.dataset;
-  var dimensionId = this.dimensionId;
-  var measureId = this.measureId;
-  var outerWidth = this.getContainerWidth();
-  var outerHeight = this.getContainerHeight();
-  var margins = this.margins;
+  var self = this;
 
-  var width = outerWidth - margins.left - margins.right;
-  var height = outerHeight - margins.top - margins.bottom;
+  // Setup data
+  var dataset = self.dataset;
+  var dimensionId = self.dimensionId;
+  var measureId = self.measureId;
 
-  var svg =
-    svgElement
-      .attr('class', 'line-chart')
-      .attr('width', outerWidth)
-      .attr('height', outerHeight);
-
-  var chart = this.lineChart =
-    svg.append('g')
-      .attr('transform', 'translate(' + margins.left + ',' + margins.top + ')')
-      .attr('width', width).attr('height', height);
-
-  if (!dimensionId) {
-    dimensionId = dataset.dimensions[0]['@id'];
+  // Setup dimensions
+  var dimension;
+  if (self.dimensionId) {
+    _.forEach(dataset.dimensions, function(dim) {
+      if (dim['@id'] === self.dimensionId) {
+        dimension = dim;
+      }
+    });
+  }
+  else {
+    dimension = dataset.dimensions[0];
+    dimensionId = dimension['@id'];
   }
 
-  var observations = dataset.observations;
+  var dimensionValues = self.dimensionValues = dimension.literalValues;
+  var dimensionPlot = _.invert(dimensionValues);
 
-  var dimensionPlot = this.dimensionPlot = [];
-  dataset.dimensions.forEach(function(dimension) {
-    var id = dimension['@id'];
-    if (id !== dimensionId) {
-      return;
-    }
+  var measures = measureId ? [measureId] : dataset.measures;
 
-    var values = dimension.values;
-    values.forEach(function(value, idx) {
-      value = bm.getLdValue(value);
-      dimensionPlot[value] = idx;
-    });
-  });
-
-  var maxValue = 0;
-  var minValue;
-  var measureValues = this.measureValues = {};
-  var dimensionValues = this.dimensionValues = [];
+  var measureValues = {};
   dataset.measures.forEach(function(measure) {
-    var id = measure['@id'];
-    if (measureId && id !== measureId) {
-      return;
-    }
     measureValues[measure['@id']] = [];
   });
+
+  var maxValue = -Infinity;
+  var observations = dataset.observations;
   observations.forEach(function(observation) {
-    dataset.measures.forEach(function(measure) {
-      var id = measure['@id'];
-      if (measureId && id !== measureId) {
-        return;
-      }
-
+    measures.forEach(function(measure) {
+      var measureId = measure['@id'];
       var dimensionValue = bm.getLdValue(observation[dimensionId]);
-      var value = bm.getLdValue(observation[id]);
+      var value = bm.getLdValue(observation[measureId]);
 
-      if (!_.contains(dimensionValues, dimensionValue)) {
-        dimensionValues.push(dimensionValue);
-      }
-
-      if (value > maxValue) {
-        maxValue = value;
-      }
-      if (value < minValue || minValue === undefined) {
-        minValue = value;
-      }
-
-      measureValues[id].push({
+      measureValues[measureId].push({
         dimensionValue: dimensionValue,
         value: value
       });
+
+      maxValue = value > maxValue ? value : maxValue;
     });
   });
 
-  var interval = width / (dimensionValues.length - 1);
-  var dimensionRange = [];
-  dimensionValues.forEach(function(val) {
-    var x = dimensionPlot[val] * interval;
-    dimensionRange.push(x);
-  });
+  // Setup chart
+  var outerWidth = self.getContainerWidth();
+  var outerHeight = self.getContainerHeight();
+  var margins = self.margins;
 
-  var minMaxDelta = maxValue - minValue;
-  var logMin = Math.log(minValue);
-  var logMax = Math.log(maxValue);
-  var lowerLimit = 0;
+  var chartWidth = outerWidth - margins.left - margins.right;
+  var chartHeight = outerHeight - margins.top - margins.bottom;
 
-  var logMax10 = logMax * Math.LOG10E;
+  var formatNumber = bm.d3locale.numberFormat(',');
+
+  self.svgElement.attr('class', 'line-chart')
+    .attr('width', outerWidth).attr('height', outerHeight);
+  var chart = self.lineChart = self.svgElement.append('g')
+    .attr('transform', 'translate(' + margins.left + ',' + margins.top + ')')
+    .attr('width', chartWidth).attr('height', chartHeight);
+
+  var logMax10 = Math.log(maxValue) * Math.LOG10E;
   var upperLimit;
   if (Math.ceil(logMax10) === 2) {
     upperLimit = 100;
@@ -195,113 +166,118 @@ bm.Chart.prototype.drawLineChart = function() {
     upperLimit = 1.005 + maxValue;
   }
 
-  var x = this.x = d3.scale.ordinal().range(dimensionRange).domain(dimensionValues);
-  var y = this.y = d3.scale.linear().range([height,0]).domain([lowerLimit, upperLimit]);
+  self.xScale = d3.scale.ordinal()
+    .domain(dimensionValues)
+    .range(_.map(dimensionValues, function(v, i) {
+      return i * chartWidth / (dimensionValues.length - 1);
+    }));
+  self.yScale = d3.scale.linear()
+    .domain([0, upperLimit])
+    .range([chartHeight,0]);
 
-  var getX = this.getX = function(d) {
-    return x(d.dimensionValue);
-  };
-  var getY = this.getY = function(d) {
-    return y(d.value);
-  };
+  self.getX = function(d) {
+    return self.xScale(d.dimensionValue);
+  }
+  self.getY = function(d) {
+    return self.yScale(d.value);
+  }
+  self.getBarHeight = function(d) {
+    return chartHeight - self.getY(d);
+  }
 
-  var line = d3.svg.line().x(getX).y(getY);
+  self.line = d3.svg.line().x(self.getX).y(self.getY);
 
-  var formatNumber = d3.format(',');
-
-  var xAxis = this.xAxis = d3.svg.axis()
-      .scale(x).orient('bottom');
-  var yAxis = this.yAxis = d3.svg.axis()
-      .scale(y).orient('left').tickFormat(formatNumber);
-
-  var xGridLines = this.xGridLines = d3.svg.axis()
-      .scale(x).orient('bottom')
-      .tickSize(-height, 0, 0).tickFormat('');
-  var yGridLines = this.yGridLines = d3.svg.axis()
-      .scale(y).orient('left')
-      .tickSize(-width, 0, 0).tickFormat('')
-
-  chart.append('g')         
-    .attr('class', 'x grid')
-    .attr('transform', 'translate(0,' + height + ')')
-    .call(xGridLines);
-  chart.append('g')         
-    .attr('class', 'y grid')
-    .call(yGridLines);
+  // Setup axes & gridlines
+  self.xAxis = d3.svg.axis()
+    .scale(self.xScale).orient('bottom');
+  self.yAxis = d3.svg.axis()
+    .scale(self.yScale).orient('left').tickFormat(formatNumber);
+  self.vGridLines = d3.svg.axis()
+    .scale(self.xScale).orient('bottom')
+    .tickSize(-chartHeight, 0, 0).tickFormat('');
+  self.hGridLines = d3.svg.axis()
+    .scale(self.yScale).orient('left')
+    .tickSize(-chartWidth, 0, 0).tickFormat('');
 
   chart.append('g')
-      .attr('class', 'x axis')
-      .attr('transform', 'translate(0,' + height + ')')
-      .call(xAxis);
+    .attr('class', 'v grid')
+    .attr('transform', 'translate(0,' + chartHeight + ')')
+    .call(self.vGridLines);
   chart.append('g')
-      .attr('class', 'y axis')
-      .call(yAxis);
+    .attr('class', 'h grid')
+    .call(self.hGridLines);
+  chart.append('g')
+    .attr('class', 'x axis')
+    .attr('transform', 'translate(0,' + chartHeight + ')')
+    .call(self.xAxis);
+  chart.append('g')
+    .attr('class', 'y axis')
+    .call(self.yAxis);
 
-  dataset.measures.forEach(function(measure, n) {
-    var values = measureValues[measure['@id']];
+  var n = 0;
+  _.forEach(measureValues, function(values) {
+    ++n;
 
-    chart.append('path')
+    var line = chart.append('g').attr('class', 'measure');
+
+    line.on('mouseover', function() {
+      var parent = this.parentNode;
+      $(this).detach().appendTo(parent);
+      d3.select(this).attr('class', 'measure hover');
+    }).on('mouseout', function() {
+      d3.select(this).attr('class', 'measure');
+    })
+
+    line.append('path')
       .datum(values)
       .attr('class', 'line m' + n)
-      .attr('d', line);
+      .attr('d', self.line);
 
-    chart.selectAll('circle.m' + n)
+    line.selectAll('circle.m' + n)
       .data(values)
       .enter()
       .append('circle')
       .attr('class', 'm' + n)
-      .attr('cx', getX)
-      .attr('cy', getY)
+      .attr('cx', self.getX)
+      .attr('cy', self.getY)
       .attr('r', 4);
   });
 }
 
 bm.Chart.prototype.resizeLineChart = function() {
-  var outerWidth = this.getContainerWidth();
-  var outerHeight = this.getContainerHeight();
-  var margins = this.margins;
-  var chart = this.lineChart;
-  var dataset = this.dataset;
-  var measureValues = this.measureValues;
+  var self = this;
+  var measureValues = self.measureValues;
 
-  var width = outerWidth - margins.left - margins.right;
-  var height = outerHeight - margins.top - margins.bottom;
+  var outerWidth = self.getContainerWidth();
+  var outerHeight = self.getContainerHeight();
+  var margins = self.margins;
+  var chart = self.lineChart;
 
-  this.svgElement
+  var chartWidth = outerWidth - margins.left - margins.right;
+  var chartHeight = outerHeight - margins.top - margins.bottom;
+
+  self.svgElement
     .attr('width', outerWidth)
     .attr('height', outerHeight);
 
-  this.lineChart
-    .attr('width', width)
-    .attr('height', height);
+  self.lineChart
+    .attr('width', chartWidth)
+    .attr('height', chartHeight);
 
-  var dimensionValues = this.dimensionValues;
-  var dimensionPlot = this.dimensionPlot;
-  var interval = width / (dimensionValues.length - 1);
-  var dimensionRange = [];
-  this.dimensionValues.forEach(function(val) {
-    var x = dimensionPlot[val] * interval;
-    dimensionRange.push(x);
-  });
+  self.xScale.range(_.map(self.dimensionValues, function(v, i) {
+    return i * chartWidth / (self.dimensionValues.length - 1);
+  }));
+  self.yScale.range([chartHeight,0]);
 
-  var x = this.x.range(dimensionRange);
-  var y = this.y.range([height,0]);
-  this.xGridLines.tickSize(-height, 0, 0);
-  this.yGridLines.tickSize(-width, 0, 0);
-  var getX = this.getX = function(d) {
-    return x(d.dimensionValue);
-  };
-  var getY = this.getY = function(d) {
-    return y(d.value);
-  };
-  var line = d3.svg.line().x(getX).y(getY);
+  self.vGridLines.tickSize(-chartHeight, 0, 0);
+  self.hGridLines.tickSize(-chartWidth, 0, 0);
 
-  chart.select('.x.axis').call(this.xAxis);
-  chart.select('.y.axis').call(this.yAxis);
-  chart.select('.x.grid').call(this.xGridLines);
-  chart.select('.y.grid').call(this.yGridLines);
-  chart.selectAll('.line').attr('d', line);
-  chart.selectAll('circle').attr('cx', this.getX).attr('cy', this.getY);
+  chart.select('.x.axis').call(self.xAxis);
+  chart.select('.y.axis').call(self.yAxis);
+  chart.select('.v.grid').call(self.vGridLines);
+  chart.select('.h.grid').call(self.hGridLines);
+  chart.selectAll('.line').attr('d', self.line);
+  chart.selectAll('circle').attr('cx', self.getX).attr('cy', self.getY);
 }
 
 bm.Chart.prototype.drawBarChart = function() {
@@ -326,7 +302,7 @@ bm.Chart.prototype.drawBarChart = function() {
     dimensionId = dimension['@id'];
   }
 
-  var dimensionValues = self.dimensionValues = dimension.literalValues.sort();
+  var dimensionValues = self.dimensionValues = dimension.literalValues;
   var dimensionPlot = _.invert(dimensionValues);
 
   var measures = measureId ? [measureId] : dataset.measures;
@@ -391,13 +367,13 @@ bm.Chart.prototype.drawBarChart = function() {
     .scale(self.xScale).orient('bottom');
   self.yAxis = d3.svg.axis()
     .scale(self.yScale).orient('left').tickFormat(formatNumber);
-  self.yGridLines = d3.svg.axis()
+  self.hGridLines = d3.svg.axis()
     .scale(self.yScale).orient('left')
     .tickSize(-chartWidth, 0, 0).tickFormat('');
 
   chart.append('g')
-    .attr('class', 'y grid')
-    .call(self.yGridLines);
+    .attr('class', 'h grid')
+    .call(self.hGridLines);
   chart.append('g')
     .attr('class', 'x axis')
     .attr('transform', 'translate(0,' + chartHeight + ')')
@@ -454,11 +430,11 @@ bm.Chart.prototype.resizeBarChart = function() {
   var chartHeight = outerHeight - margins.top - margins.bottom;
 
   self.xScale.rangeRoundBands([0,chartWidth], 0.1);
-  self.yGridLines.tickSize(-chartWidth, 0, 0);
+  self.hGridLines.tickSize(-chartWidth, 0, 0);
 
   chart.select('.x.axis').call(self.xAxis);
   chart.select('.y.axis').call(self.yAxis);
-  chart.select('.y.grid').call(self.yGridLines);
+  chart.select('.h.grid').call(self.hGridLines);
   chart.selectAll('g.bar')
     .attr('transform', function(d) {
       return 'translate(' + self.getX(d) + ',' + self.getY(d) + ')';
