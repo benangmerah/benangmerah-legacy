@@ -46,7 +46,7 @@ helpers.preferredDatasetLabel = function(resource, options) {
 
   var preferredLabel = shared.getPreferredLabel(resource);
 
-  var perIndex = preferredLabel.toLowerCase().indexOf(' per ');
+  var perIndex = preferredLabel.toLowerCase().lastIndexOf(' per ');
   if (perIndex > -1) {
     return preferredLabel.substring(0, perIndex);
   }
@@ -486,7 +486,7 @@ helpers.select = function(property, choices, options) {
     '<select ' + attrs.join(' ') + '>' + optionsString + '</select>');
 };
 
-module.exports.logLevelClass = function(logLevel, options) {
+helpers.logLevelClass = function(logLevel, options) {
   if (!options) {
     logLevel = this.level;
   }
@@ -505,6 +505,22 @@ module.exports.logLevelClass = function(logLevel, options) {
   }
 }
 
-module.exports.json = function(value) {
+helpers.json = function(value) {
   return new Handlebars.SafeString(JSON.stringify(value));
+}
+
+helpers.datasetJson = function(dataset) {
+  var obj = {
+    dimensions: _.map(dataset.dimensions, function(v) {
+      return _.omit(v, '@type');
+    }),
+    measures: _.map(dataset.measures, function(v) {
+      return _.omit(v, '@type');
+    }),
+    observations: _.map(dataset.observations, function(v) {
+      return _.omit(v, '@id', '@type', 'qb:dataSet', 'bm:refArea');
+    })
+  };
+
+  return helpers.json(obj);
 }

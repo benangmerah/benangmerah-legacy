@@ -157,11 +157,7 @@ $(function() {
 
 var datasets = {};
 {{#each qbDatasets}}
-datasets['{{[@id]}}'] = {
-	observations: {{{json observations}}},
-	dimensions: {{{json dimensions}}},
-	measures: {{{json measures}}}
-}
+datasets['{{[@id]}}'] = {{{datasetJson this}}}
 {{/each}}
 </script>
 {{/defer}}
