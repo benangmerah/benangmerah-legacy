@@ -323,7 +323,7 @@ helpers.datacubeTable = function(dataset, options) {
     var measure = measures[0];
     var measureId = measure['@id'];
     var measureLabel = getLabel(measure);
-    firstDimension.values.forEach(function(value) {
+    firstDimension.literalValues.forEach(function(value) {
       var cursor = dataset.datacube[value];
 
       output += '\n    <tr>';
@@ -331,8 +331,11 @@ helpers.datacubeTable = function(dataset, options) {
       output += helpers.ldObject(value);
       output += '</th>';
       traverse(cursor).forEach(function() {
-        if (this.level === shiftedDimensions.length) {
-          var text = helpers.ldObject(this.node[measureId]);
+        if (this.level < shiftedDimensions.length) {
+          this.keys = shiftedDimensions[this.level].literalValues;
+        }
+        else if (this.level === shiftedDimensions.length) {
+          var text = this.node ? helpers.ldObject(this.node[measureId]) : '';
           output += '\n      <td>' + text + '</td>';
         }
       });
@@ -390,7 +393,7 @@ helpers.datacubeTable = function(dataset, options) {
           this.keys = dataset.dimensions[this.level].literalValues;
         }
         else if (this.level === dimensions.length) {
-          var text = helpers.ldObject(this.node[measureId]);
+          var text = this.node ? helpers.ldObject(this.node[measureId]) : '';
           output += '\n      <td>' + text + '</td>';
         }
       });
