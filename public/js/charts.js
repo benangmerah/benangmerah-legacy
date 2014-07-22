@@ -162,7 +162,7 @@ bm.Chart.prototype.drawLineChart = function() {
   var measures = measureId ? [measureId] : dataset.measures;
 
   var measureValues = {};
-  dataset.measures.forEach(function(measure) {
+  measures.forEach(function(measure) {
     measureValues[measure['@id']] = [];
   });
 
@@ -422,7 +422,7 @@ bm.Chart.prototype.drawBarChart = function() {
   var measures = measureId ? [measureId] : dataset.measures;
 
   var measureValues = {};
-  dataset.measures.forEach(function(measure) {
+  measures.forEach(function(measure) {
     measureValues[measure['@id']] = [];
   });
 
