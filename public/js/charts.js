@@ -27,6 +27,46 @@ bm.getLdValue = function(ldObj) {
   }
 };
 
+bm.getPreferredLabel = function(jsonLdResource) {
+  var labels;
+  if (jsonLdResource['rdfs:label']) {
+    labels = jsonLdResource['rdfs:label'];
+  }
+  else if (jsonLdResource[shared.RDFS_NS + 'label']) {
+    labels = jsonLdResource[shared.RDFS_NS + 'label'];
+  }
+  else if (jsonLdResource['@id']) {
+    return shared.getPropertyName(jsonLdResource['@id']);
+  }
+  else {
+    return '';
+  }
+
+  if (typeof labels == 'string') {
+    return labels;
+  }
+
+  if (!(labels instanceof Array)) {
+    console.log(labels);
+    return shared.getLdValue(labels);
+  }
+
+  var preferredLabel = '';
+
+  labels.forEach(function(label) {
+    if (label['@lang'] !== 'id' && preferredLabel) {
+      return;
+    }
+
+    var labelValue = shared.getLdValue(label);
+    if (labelValue.length > preferredLabel.length) {
+      preferredLabel = labelValue;
+    }
+  });
+
+  return preferredLabel;
+};
+
 bm.Chart = function Chart(chartContainerElement, dataset, dimensionId, measureId) {
   this.containerElement = $(chartContainerElement);
   this.dataset = dataset;
@@ -130,6 +170,7 @@ bm.Chart.prototype.drawLineChart = function() {
       var value = bm.getLdValue(observation[measureId]);
 
       measureValues[measureId].push({
+        measureLabel: bm.getPreferredLabel(measure),
         dimensionValue: dimensionValue,
         value: value
       });
@@ -214,19 +255,23 @@ bm.Chart.prototype.drawLineChart = function() {
     .attr('class', 'y axis')
     .call(self.yAxis);
 
+  self.makeTooltip = function(d) {
+    return '<strong>' + d.measureLabel + '</strong><br>' + formatNumber(d.value);
+  }
+
   var n = 0;
   _.forEach(measureValues, function(values) {
-    ++n;
-
     var line = chart.append('g').attr('class', 'measure');
 
     line.on('mouseover', function() {
       var parent = this.parentNode;
       $(this).detach().appendTo(parent);
+      d3.select(this.parentNode).selectAll('.measure').attr('class', 'measure away');
       d3.select(this).attr('class', 'measure hover');
     }).on('mouseout', function() {
+      d3.select(this.parentNode).selectAll('.measure').attr('class', 'measure');
       d3.select(this).attr('class', 'measure');
-    })
+    });
 
     line.append('path')
       .datum(values)
@@ -240,8 +285,17 @@ bm.Chart.prototype.drawLineChart = function() {
       .attr('class', 'm' + n)
       .attr('cx', self.getX)
       .attr('cy', self.getY)
-      .attr('r', 4);
+      .attr('r', 4)
+      .attr('title', self.makeTooltip)
+      .each(function() {
+        $(this).tipsy({ opacity: 1, html: true });
+      });
+
+    ++n;
   });
+
+  // function foT() { $('svg.line-chart circle').tipsy({opacity:.9, gravity:'n', html:true}); }
+  // setTimeout(foT, 2000);
 }
 
 bm.Chart.prototype.resizeLineChart = function() {

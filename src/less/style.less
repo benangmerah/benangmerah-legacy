@@ -9,6 +9,7 @@
 
 // Import bootstrap
 @import "bootstrap/bootstrap.less";
+@import "tipsy.less";
 
 // Variables
 @bright-red:     #ff3000;
@@ -512,7 +513,7 @@ body > .content {
       .line {
         fill: none;
         stroke: @bright-red;
-        stroke-width: 1.5px;
+        stroke-width: 3px;
 
         &.m0 {
           stroke: @bright-red;
@@ -536,10 +537,15 @@ body > .content {
       circle {
         fill: black;
         stroke: white;
-        stroke-width: 1.5px;
+        stroke-width: 2px;
+      }
+
+      &.away {
+        opacity: 0.3;
       }
 
       &.hover {
+        opacity: 1;
         .line {
           stroke-width: 5px;
         }
