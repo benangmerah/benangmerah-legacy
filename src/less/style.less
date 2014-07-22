@@ -509,50 +509,62 @@ body > .content {
         stroke-width: 0;
     }
 
-    &.line-chart .measure {
-      .line {
-        fill: none;
-        stroke: @bright-red;
-        stroke-width: 3px;
-
-        &.m0 {
-          stroke: @bright-red;
-        }
-        &.m1 {
-          stroke: #0073e6;
-        }
-        &.m2 {
-          stroke: #ff8000;
-        }
-        &.m3 {
-          stroke: #00f;
-        }
-        &.m4 {
-          stroke: #ff0080;
-        }
-        &.m5 {
-          stroke: #0f0;
-        }
-      }
-      circle {
-        fill: black;
-        stroke: white;
-        stroke-width: 2px;
-      }
-
-      &.away {
-        opacity: 0.3;
-      }
-
-      &.hover {
-        opacity: 1;
+    &.line-chart {
+      .measure {
         .line {
-          stroke-width: 5px;
+          fill: none;
+          stroke-width: 3px;
         }
         circle {
-          stroke-width: 3px;
-          fill: white;
-          stroke: black;
+          fill: black;
+          stroke: white;
+          stroke-width: 2px;
+        }
+
+        &.away {
+          opacity: 0.3;
+        }
+
+        &.hover {
+          opacity: 1;
+          .line {
+            stroke-width: 5px;
+          }
+          circle {
+            stroke-width: 3px;
+            fill: white;
+            stroke: black;
+          }
+        }
+      }
+      .line.m0, .m0 .line {
+        stroke: @bright-red;
+      }
+      .line.m1, .m1 .line {
+        stroke: #0073e6;
+      }
+      .line.m2, .m2 .line {
+        stroke: #ff8000;
+      }
+      .line.m3, .m3 .line {
+        stroke: #00f;
+      }
+      .line.m4, .m4 .line {
+        stroke: #ff0080;
+      }
+      .line.m5, .m5 line {
+        stroke: #0f0;
+      }
+      .legend {
+        font-size: @font-size-small;
+
+        text {
+          fill: @gray;
+        }
+        line {
+          shape-rendering: crispEdges;
+          stroke-width: 2px;
+          stroke: @gray-dark;
         }
       }
     }

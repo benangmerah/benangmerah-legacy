@@ -127,7 +127,12 @@ bm.Chart.prototype.getContainerHeight = function() {
   return Math.floor(this.containerElement.innerHeight());
 };
 
-bm.Chart.prototype.margins = { top: 15, right: 20, bottom: 30, left: 60 };
+bm.Chart.prototype.margins = {
+  top: 15, right: 20, bottom: 30, left: 60,
+  legend: {
+    width: 90, left: 30, top: 10
+  }
+};
 
 bm.Chart.prototype.drawLineChart = function() {
   var self = this;
@@ -184,8 +189,11 @@ bm.Chart.prototype.drawLineChart = function() {
   var outerHeight = self.getContainerHeight();
   var margins = self.margins;
 
-  var chartWidth = outerWidth - margins.left - margins.right;
-  var chartHeight = outerHeight - margins.top - margins.bottom;
+  var chartWidth = self.chartWidth = 
+    outerWidth - margins.left - margins.right -
+    margins.legend.width - margins.legend.left;
+  var chartHeight = self.chartHeight = 
+    outerHeight - margins.top - margins.bottom;
 
   var formatNumber = bm.d3locale.numberFormat(',');
 
@@ -255,13 +263,49 @@ bm.Chart.prototype.drawLineChart = function() {
     .attr('class', 'y axis')
     .call(self.yAxis);
 
+  // Tooltips
   self.makeTooltip = function(d) {
     return '<strong>' + d.measureLabel + '</strong><br>' + formatNumber(d.value);
   }
 
+  // Legend
+  self.wrapText = function(text, width) {
+    text.each(function() {
+      var text = d3.select(this),
+          words = text.text().split(/\s+/).reverse(),
+          word,
+          line = [],
+          lineNumber = 0,
+          lineHeight = 1.1, // ems
+          y = text.attr("y"),
+          dy = parseFloat(text.attr("dy")),
+          tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+      while (word = words.pop()) {
+        line.push(word);
+        tspan.text(line.join(" "));
+        if (tspan.node().getComputedTextLength() > width) {
+          line.pop();
+          tspan.text(line.join(" "));
+          line = [word];
+          tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+        }
+      }
+    });
+  }
+
+  self.legendPosition = function(selection) {
+    var legendX = self.chartWidth + margins.legend.left;
+    self.legendY = margins.legend.top;
+    selection.each(function(d) {
+      var legend = d3.select(this);
+      legend.attr('transform', 'translate(' + legendX + ',' + self.legendY + ')');
+      self.legendY += Math.ceil(legend.node().getBoundingClientRect().height + margins.legend.top);
+    });
+  }
+
   var n = 0;
   _.forEach(measureValues, function(values) {
-    var line = chart.append('g').attr('class', 'measure');
+    var line = chart.append('g').attr('class', 'measure m' + n);
 
     line.on('mouseover', function() {
       var parent = this.parentNode;
@@ -291,11 +335,23 @@ bm.Chart.prototype.drawLineChart = function() {
         $(this).tipsy({ opacity: 1, html: true });
       });
 
+    // Legend
+    var legend = line.append('g').attr('class', 'legend m' + n);
+    legend.datum(values);
+    legend.append('line')
+      .attr('class', 'line')
+      .attr('x1', -2/3 * margins.legend.left)
+      .attr('x2', -1/6 * margins.legend.left)
+      .attr('y1', -2).attr('y2', -2);
+    legend.append('text')
+      .attr('x', 0).attr('y', 0).attr('dy', '0.2em')
+      .text(values[0].measureLabel)
+      .call(self.wrapText, margins.legend.width);
+
     ++n;
   });
 
-  // function foT() { $('svg.line-chart circle').tipsy({opacity:.9, gravity:'n', html:true}); }
-  // setTimeout(foT, 2000);
+  chart.selectAll('.legend').call(self.legendPosition);
 }
 
 bm.Chart.prototype.resizeLineChart = function() {
@@ -307,8 +363,11 @@ bm.Chart.prototype.resizeLineChart = function() {
   var margins = self.margins;
   var chart = self.lineChart;
 
-  var chartWidth = outerWidth - margins.left - margins.right;
-  var chartHeight = outerHeight - margins.top - margins.bottom;
+  var chartWidth = self.chartWidth = 
+    outerWidth - margins.left - margins.right -
+    margins.legend.width - margins.legend.left;
+  var chartHeight = self.chartHeight = 
+    outerHeight - margins.top - margins.bottom;
 
   self.svgElement
     .attr('width', outerWidth)
@@ -332,6 +391,7 @@ bm.Chart.prototype.resizeLineChart = function() {
   chart.select('.h.grid').call(self.hGridLines);
   chart.selectAll('.line').attr('d', self.line);
   chart.selectAll('circle').attr('cx', self.getX).attr('cy', self.getY);
+  chart.selectAll('.legend').call(self.legendPosition);
 }
 
 bm.Chart.prototype.drawBarChart = function() {
