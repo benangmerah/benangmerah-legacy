@@ -32,7 +32,7 @@
 				{{#with lastLog}}
 				<td>
 					<span class="text-{{logLevelClass}}">{{message}}</span><br>
-					<small>{{moment lastLog.timestamp fromNow=null}}</small>
+					<small>{{moment timestamp fromNow=null}}</small>
 				</td>
 				{{/with}}
 				{{!-- <td>{{#if instance}}{{instance.lastFetched}}{{/if}}</td> --}}

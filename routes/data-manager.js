@@ -1,6 +1,7 @@
 var util = require('util');
 
 var async = require('async');
+var config = require('config');
 var conn = require('starmutt');
 var express = require('express');
 var logger = require('winston');
@@ -13,73 +14,47 @@ var shared = require('../shared');
 var router = express.Router();
 module.exports = router;
 
+// Data Manager config
+var instancesGraphUri =
+  config.dataManager && config.dataManager.instancesGraphUri ||
+  'tag:benangmerah.net:driver-instances';
+var concurrency =
+  config.dataManager && config.dataManager.concurrency || 1;
+var fragmentLength =
+  config.dataManager && config.dataManager.fragmentLength || 1048576;
+
 var initiated = false;
-var INSTANCES_GRAPH_URI = 'tag:benangmerah.net:driver-instances';
 var availableDrivers = [];
-var driverInstances = [];
 var driverDetails = {};
+
+var driverInstances = [];
+var instanceLogs = {};
+var instanceObjects = {};
 
 var sharedQueryQueue = async.queue(function(task, callback) {
   var query = task.query;
   var instance = task.instance;
 
-  instance.info('Executing SPARQL query...');
+  instance.log('info',
+    'Executing SPARQL query... (length=' + query.length + ')');
+  var start = _.now();
+
   conn.execQuery(query, function(err) {
     if (err) {
       instance.error('Query failed: ' + err);
       return callback(err);
     }
 
-    instance.info('Query successful');
+    var delta = _.now() - start;
+    instance.log('info', 'Query completed in ' + delta + 'ms.');
     return callback();
   });
-}, 1);
+}, concurrency);
 
-sharedQueryQueue.drain = function() {
-  driverInstances.forEach(function(inst) {
-    if (inst.lastLog.level === 'info') {
-      var logObject = {
-        level: 'finish',
-        message: 'Idle.',
-        timestamp: inst.lastLog.timestamp
-      };
-      inst.lastLog = logObject;
-      inst.log.push(logObject);
-    }
-  });
-  logger.info('Query queue has been drained.');
-}
-
-function instanceLog(instance, level, message, timestamp) {
-  if (!timestamp) {
-    timestamp = _.now();
-  }
-
-  var logObject = {
-    level: level,
-    message: message,
-    timestamp: timestamp
-  };
-
-  instance.log.push(logObject);
-  instance.lastLog = logObject;
-  logger.log(level, instance['@id'] + ': ' + message);
-}
-
-function DriverSparqlStream(options, instance) {
-  this.instance = instance;
-
+function DriverSparqlStream(options) {
   DriverSparqlStream.super_.call(this, { decodeStrings: false });
-  if (options && options.graphUri) {
-    this.graphUri = options.graphUri;
-  }
-
-  if (options && options.threshold) {
-    this.threshold = options.threshold;
-  }
-  else {
-    this.threshold = 104857;
-  }
+  this.instance = options.instance;
+  this.graphUri = options.graphUri;
 }
 
 util.inherits(DriverSparqlStream, require('stream').Transform);
@@ -87,6 +62,8 @@ util.inherits(DriverSparqlStream, require('stream').Transform);
 DriverSparqlStream.prototype.charCount = 0;
 DriverSparqlStream.prototype.tripleBuffer = '';
 DriverSparqlStream.prototype.fragmentBuffer = '';
+DriverSparqlStream.prototype.queryCount = 0;
+DriverSparqlStream.prototype.pendingQueryCount = 0;
 
 DriverSparqlStream.prototype._transform = function(chunk, encoding, callback) {
   this.tripleBuffer += chunk;
@@ -95,7 +72,7 @@ DriverSparqlStream.prototype._transform = function(chunk, encoding, callback) {
     this.charCount += this.tripleBuffer.length;
     this.tripleBuffer = '';
 
-    if (this.charCount >= this.threshold) {
+    if (this.charCount >= fragmentLength) {
       this.charCount = 0;
       this.commit();
       this.fragmentBuffer = '';
@@ -105,82 +82,134 @@ DriverSparqlStream.prototype._transform = function(chunk, encoding, callback) {
 };
 
 DriverSparqlStream.prototype._flush = function(callback) {
+  this.finished = true;
   this.commit();
   callback();
 };
 
-DriverSparqlStream.prototype.commit = function() {
-  var fragment = this.fragmentBuffer;
+DriverSparqlStream.prototype.commit = function(callback) {
+  var self = this;
+  var fragment = self.fragmentBuffer;
   var baseQuery, query;
 
-  if (this.graphUri) {
+  if (self.graphUri) {
     baseQuery = 'INSERT DATA { GRAPH <%s> {\n%s} }\n';
-    query = util.format(baseQuery, this.graphUri, fragment);
+    query = util.format(baseQuery, self.graphUri, fragment);
   }
   else {
     baseQuery = 'INSERT DATA {\n%s}\n';
     query = util.format(baseQuery, fragment);
   }
-  sharedQueryQueue.push({ query: query, instance: this.instance });
+
+  ++self.queryCount;
+  ++self.pendingQueryCount;
+  sharedQueryQueue.push(
+    { query: query, instance: self.instance },
+    function() {
+      --self.pendingQueryCount;
+      if (self.finished && self.pendingQueryCount === 0) {
+        self.instance.log('info', self.queryCount + ' queries completed.');
+        self.instance.log('finish', 'Idle.');
+      }
+    });
 };
 
 function prepareInstance(rawDriverInstance) {
-  var firstLogObject = {
-    level: 'finish',
-    message: 'Initialized.',
-    timestamp: _.now()
-  };
+  var preparedInstance = rawDriverInstance;
+  var instanceId = preparedInstance['@id'];
 
-  var preparedInstance = _.extend(rawDriverInstance, {
-    options: {},
-    log: [firstLogObject],
-    lastLog: firstLogObject
+  // Logs
+  if (!instanceLogs[instanceId]) {
+    instanceLogs[instanceId] = [];
+  }
+  preparedInstance.logs = instanceLogs[instanceId]; // Reference
+  preparedInstance.log = function(level, message) {
+    this.logs.push({
+      level: level,
+      message: message,
+      timestamp: _.now()
+    });
+
+    logger.log(
+      level === 'finish' ? 'info' : level,
+      instanceId + ': ' + message
+    );
+  };
+  Object.defineProperty(preparedInstance, 'lastLog', {
+    get: function() {
+      if (this.logs.length === 0) {
+        return undefined;
+      }
+
+      return this.logs[this.logs.length - 1];
+    }
   });
 
+  // Parse optionsYAML
   try {
     var optionsObject = yaml.safeLoad(preparedInstance['bm:optionsYAML']);
     preparedInstance.options = optionsObject;
   }
   catch (e) {
     preparedInstance['bm:enabled'] = false;
-    preparedInstance.error = e;
+    preparedInstance.log('error', e);
   }
 
-  if (preparedInstance['bm:enabled']) {
-    var driverName = preparedInstance['bm:driverName'];
-    if (!_.contains(availableDrivers, driverName)) {
-      preparedInstance['bm:enabled'] = false;
+  if (!preparedInstance['bm:enabled']) {
+    preparedInstance.log('error', 'Disabled.');
+    return preparedInstance;
+  }
+
+  // Identify the appropriate driver
+  var driverName = preparedInstance['bm:driverName'];
+  if (!_.contains(availableDrivers, driverName)) {
+    preparedInstance['bm:enabled'] = false;
+    preparedInstance.log('error', 'Driver does not exist.');
+    return preparedInstance;
+  }
+
+  Object.defineProperty(preparedInstance, 'instance', {
+    get: function() {
+      return instanceObjects[instanceId];
+    },
+    set: function(obj) {
+      instanceObjects[instanceId] = obj;
     }
-    else {
-      try {
-        var constructor = require(driverName);
-        var instance = new constructor();
-        preparedInstance.instance = instance;
-        instance.setOptions(preparedInstance.options);
+  });
 
-        var sparqlStream = new DriverSparqlStream({
-          graphUri: preparedInstance['@id']
-        }, instance);
-        var n3writer = n3.Writer(sparqlStream);
+  // Construct the driver instance object
+  try {
+    var constructor = require(driverName);
 
-        instance.on('addTriple', function(s, p, o) {
-          n3writer.addTriple(s, p, o);
-        });
-
-        instance.on('log', function(level, message) {
-          instanceLog(preparedInstance, level, message);
-        });
-
-        instance.on('finish', function() {
-          n3writer.end();
-          instanceLog(preparedInstance, 'info', 'Finished fetching.');
-        });
-      }
-      catch (e) {
-        preparedInstance['bm:enabled'] = false;
-        preparedInstance.error = e;
-      }
+    if (preparedInstance.instance &&
+        preparedInstance.instance.constructor === constructor) {
+      return preparedInstance;
     }
+
+    preparedInstance.log('info', 'Initialising...');
+
+    var instance = new constructor();
+    instance.setOptions(preparedInstance.options);
+
+    var sparqlStream = new DriverSparqlStream({
+      instance: preparedInstance,
+      graphUri: preparedInstance['@id']
+    });
+    var tripleWriter = n3.Writer(sparqlStream);
+
+    instance.on('addTriple', tripleWriter.addTriple.bind(tripleWriter));
+    instance.on('log', preparedInstance.log.bind(preparedInstance));
+    instance.on('finish', function() {
+      tripleWriter.end();
+      preparedInstance.log('info', 'Finished fetching.');
+    });
+
+    preparedInstance.log('finish', 'Initialised.');
+    preparedInstance.instance = instance;
+  }
+  catch (e) {
+    preparedInstance['bm:enabled'] = false;
+    preparedInstance.log('error', e);
   }
 
   return preparedInstance;
@@ -328,7 +357,7 @@ function submitCreateInstance(req, res, next) {
       'bm:driverName': req.body['bm:driverName'],
       'bm:optionsYAML': req.body['bm:optionsYAML'],
       'bm:enabled': req.body['bm:enabled'] ? true : false
-    }, INSTANCES_GRAPH_URI, function(err, data) {
+    }, instancesGraphUri, function(err, data) {
       if (err) {
         return callback(err);
       }
@@ -446,7 +475,7 @@ function submitEditInstance(req, res, next) {
       'bm:driverName': req.body['bm:driverName'],
       'bm:optionsYAML': req.body['bm:optionsYAML'],
       'bm:enabled': req.body['bm:enabled'] ? true : false
-    }, INSTANCES_GRAPH_URI, function(err, data) {
+    }, instancesGraphUri, function(err, data) {
       if (err) {
         return callback(err);
       }
@@ -572,7 +601,6 @@ function submitFetchInstance(req, res, next) {
   }
 
   function doFetch(callback) {
-    theInstance.once('error', console.error);
     theInstance.fetch();
     callback();
   }
