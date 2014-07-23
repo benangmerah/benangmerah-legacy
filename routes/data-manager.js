@@ -80,17 +80,15 @@ function DriverSparqlStream(options, instance) {
   else {
     this.threshold = 104857;
   }
-
-  this.on('end', this.commit);
 }
 
-util.inherits(DriverSparqlStream, require('stream').Writable);
+util.inherits(DriverSparqlStream, require('stream').Transform);
 
 DriverSparqlStream.prototype.charCount = 0;
 DriverSparqlStream.prototype.tripleBuffer = '';
 DriverSparqlStream.prototype.fragmentBuffer = '';
 
-DriverSparqlStream.prototype._write = function(chunk, encoding, callback) {
+DriverSparqlStream.prototype._transform = function(chunk, encoding, callback) {
   this.tripleBuffer += chunk;
   if (chunk === '.\n') {
     this.fragmentBuffer += this.tripleBuffer;
@@ -103,6 +101,11 @@ DriverSparqlStream.prototype._write = function(chunk, encoding, callback) {
       this.fragmentBuffer = '';
     }
   }
+  callback();
+};
+
+DriverSparqlStream.prototype._flush = function(callback) {
+  this.commit();
   callback();
 };
 
@@ -169,6 +172,7 @@ function prepareInstance(rawDriverInstance) {
         });
 
         instance.on('finish', function() {
+          n3writer.end();
           instanceLog(preparedInstance, 'info', 'Finished fetching.');
         });
       }
