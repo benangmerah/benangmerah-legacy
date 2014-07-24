@@ -702,16 +702,18 @@ function submitFetchInstance(req, res, next) {
 }
 
 function submitFetchAllInstancesOfDriver(req, res, next) {
-  var driverName = req.driverName;
+  var driverName = req.params.driverName;
   async.each(driverInstances, function(instance, callback) {
     if (instance['bm:driverName'] === driverName &&
         instance.instance && !instance.isFetching) {
+      instance.isFetching = true;
+      instance.log('info', 'Fetching...');
       instance.instance.fetch();
     }
 
     callback();
   }, function() {
-    res.redirect('/data-manager/');
+    res.redirect('/data-manager/?success=true&fetchedDriver=' + driverName);
   });
 }
 
