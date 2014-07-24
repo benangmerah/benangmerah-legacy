@@ -200,7 +200,7 @@ function prepareInstance(rawDriverInstance) {
 
     var sparqlStream, tripleWriter;
 
-    function initStreams() {
+    var initStreams = function() {
       sparqlStream = new DriverSparqlStream({
         instance: preparedInstance,
         graphUri: preparedInstance['@id']
@@ -208,10 +208,11 @@ function prepareInstance(rawDriverInstance) {
       tripleWriter = n3.Writer(sparqlStream);
 
       sparqlStream.on('end', onEnd);
-    }
-    function onEnd() {
+    };
+    var onEnd = function() {
       sparqlStream = undefined;
       tripleWriter = undefined;
+      delete preparedInstance.isFetching;
 
       if (driverName.indexOf('meta-') === -1) {
         return;
@@ -222,7 +223,7 @@ function prepareInstance(rawDriverInstance) {
       fetchDriverInstances(function() {
         preparedInstance.log('finish', 'Idle.');
       });
-    }
+    };
 
     initStreams();
     instance.on('addTriple', function(s, p, o) {
@@ -286,7 +287,7 @@ function fetchDriverInstances(callback) {
         delete instanceObjects[id];
         delete instanceLogs[id];
       }
-    };
+    }
 
     return callback();
   });
@@ -669,7 +670,7 @@ function submitFetchInstance(req, res, next) {
     for (var i = 0; i < driverInstances.length; ++i) {
       var instance = driverInstances[i];
       if (instance['@id'] === id && instance.instance) {
-        theInstance = instance.instance;
+        theInstance = instance;
         return callback();
       }
     }
@@ -678,7 +679,13 @@ function submitFetchInstance(req, res, next) {
   }
 
   function doFetch(callback) {
-    theInstance.fetch();
+    if (theInstance.isFetching) {
+      // The instance is currently fetching
+      return callback();
+    }
+
+    theInstance.log('info', 'Fetching...');
+    theInstance.instance.fetch();
     callback();
   }
 
@@ -697,7 +704,8 @@ function submitFetchInstance(req, res, next) {
 function submitFetchAllInstancesOfDriver(req, res, next) {
   var driverName = req.driverName;
   async.each(driverInstances, function(instance, callback) {
-    if (instance['bm:driverName'] === driverName && instance.instance) {
+    if (instance['bm:driverName'] === driverName &&
+        instance.instance && !instance.isFetching) {
       instance.instance.fetch();
     }
 
