@@ -1,5 +1,14 @@
 var bm = {};
 
+bm.RDF_NS = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+bm.RDFS_NS = 'http://www.w3.org/2000/01/rdf-schema#';
+bm.OWL_NS = 'http://www.w3.org/2002/07/owl#';
+bm.XSD_NS = 'http://www.w3.org/2001/XMLSchema#';
+bm.GEO_NS = 'http://www.w3.org/2003/01/geo/wgs84_pos#';
+bm.QB_NS = 'http://purl.org/linked-data/cube#';
+bm.BM_NS = 'http://benangmerah.net/ontology/';
+bm.DCT_NS = 'http://purl.org/dc/terms/';
+
 bm.d3locale = d3.locale({
   decimal: ',',
   thousands: '.',
@@ -27,16 +36,28 @@ bm.getLdValue = function(ldObj) {
   }
 };
 
+bm.getPropertyName = function(propertyName) {
+  var delimiters = ['#', '/', ':'];
+
+  for (var i = 0; i < delimiters.length; ++i) {
+    var delimiter = delimiters[i];
+    var index = propertyName.lastIndexOf(delimiter);
+    if (index !== -1) {
+      return propertyName.substring(index + 1);
+    }
+  }
+};
+
 bm.getPreferredLabel = function(jsonLdResource) {
   var labels;
   if (jsonLdResource['rdfs:label']) {
     labels = jsonLdResource['rdfs:label'];
   }
-  else if (jsonLdResource[shared.RDFS_NS + 'label']) {
-    labels = jsonLdResource[shared.RDFS_NS + 'label'];
+  else if (jsonLdResource[bm.RDFS_NS + 'label']) {
+    labels = jsonLdResource[bm.RDFS_NS + 'label'];
   }
   else if (jsonLdResource['@id']) {
-    return shared.getPropertyName(jsonLdResource['@id']);
+    return bm.getPropertyName(jsonLdResource['@id']);
   }
   else {
     return '';
@@ -48,7 +69,7 @@ bm.getPreferredLabel = function(jsonLdResource) {
 
   if (!(labels instanceof Array)) {
     console.log(labels);
-    return shared.getLdValue(labels);
+    return bm.getLdValue(labels);
   }
 
   var preferredLabel = '';
@@ -58,7 +79,7 @@ bm.getPreferredLabel = function(jsonLdResource) {
       return;
     }
 
-    var labelValue = shared.getLdValue(label);
+    var labelValue = bm.getLdValue(label);
     if (labelValue.length > preferredLabel.length) {
       preferredLabel = labelValue;
     }
