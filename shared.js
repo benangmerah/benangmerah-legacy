@@ -306,7 +306,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   }
 
   function getProperties(callback) {
-    async.mapSeries(propertyIds, function(propertyId, callback) {
+    async.each(propertyIds, function(propertyId, callback) {
       var baseQuery = 'construct { <%s> ?p ?o. } ' +
                       'where { graph ?g { <%s> ?p ?o. } }';
 
@@ -318,11 +318,6 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
         }
 
         allGraph = _.union(allGraph, graph);
-        graph.forEach(function(subgraph) {
-          var structure = subgraph[shared.context.qb + 'structure'];
-          var ids = _.pluck(structure, '@id');
-          dsdIds = _.union(dsdIds, ids);
-        });
 
         return callback(null);
       });
@@ -336,7 +331,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   }
 
   function getDatasets(callback) {
-    async.mapSeries(datasetIds, function(datasetId, callback) {
+    async.each(datasetIds, function(datasetId, callback) {
       var baseQuery = 'construct { <%s> ?p ?o. } ' +
                       'where { graph ?g { <%s> ?p ?o. } }';
 
@@ -366,7 +361,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   }
 
   function getDsds(callback) {
-    async.mapSeries(dsdIds, function(dsdId, callback) {
+    async.each(dsdIds, function(dsdId, callback) {
       var baseQuery =
         'construct { <%s> ?p ?o. <%s> qb:component ?c. ?c ?cP ?cO. } ' +
         'where { graph ?g { <%s> ?p ?o. <%s> qb:component ?c. ?c ?cP ?cO. } }';
@@ -433,7 +428,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
       }
     });
 
-    async.mapSeries(datasets, processDataset, function(err, results) {
+    async.map(datasets, processDataset, function(err, results) {
       if (err) {
         return callback(err);
       }
