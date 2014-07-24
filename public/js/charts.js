@@ -516,7 +516,7 @@ bm.Chart.prototype.drawBarChart = function() {
       .attr('text-anchor', 'middle')
       .attr('dy', function(d) {
         var text = d3.select(this);
-        if (parseInt(text.style('font-size')) * 2 > self.getBarHeight(d)) {
+        if (parseInt(text.style('font-size')) * 3 > self.getBarHeight(d)) {
           text.attr('class', 'outside');
           return '-0.75em';
         }
