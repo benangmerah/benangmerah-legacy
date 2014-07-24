@@ -270,25 +270,6 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
       });
   }
 
-  function getGraphAltTemp(query, callback) {
-    var start = _.now();
-    var queryOptions = {
-      query: query,
-      mimetype: 'text/plain'
-    };
-
-    conn.execQuery(queryOptions, function(err, nquads) {
-      if (err) {
-        return callback(err);
-      }
-      jsonld.fromRDF(nquads, {format: 'application/nquads'}, function(err, doc) {
-        console.log(query);
-        console.log('Query took %d\n', _.now() - start);
-        callback(err, doc);
-      });
-    });
-  }
-
   function getObservations(callback) {
     var query = 'construct { ?observation ?p ?o } ' +
                 'where { graph ?g { ' +
@@ -297,7 +278,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
                 conditionsString + ' }';
 
     var start = _.now();
-    getGraphAltTemp(query, function(err, graph) {
+    conn.getGraph(query, function(err, graph) {
       if (err) {
         return callback(err);
       }
@@ -308,7 +289,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
 
       allGraph = _.union(allGraph, graph);
 
-      graph.forEach(function(subgraph) {
+      _.forEach(graph, function(subgraph) {
         var dataset = subgraph[shared.context.qb + 'dataSet'];
         var ids = _.pluck(dataset, '@id');
         datasetIds = _.union(datasetIds, ids);
@@ -362,13 +343,13 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
 
       var query = util.format(baseQuery, datasetId, datasetId);
       
-      getGraphAltTemp(query, function(err, graph) {
+      conn.getGraph(query, function(err, graph) {
         if (err) {
           return callback(err);
         }
 
         allGraph = _.union(allGraph, graph);
-        graph.forEach(function(subgraph) {
+        _.forEach(graph, function(subgraph) {
           var structure = subgraph[shared.context.qb + 'structure'];
           var ids = _.pluck(structure, '@id');
           dsdIds = _.union(dsdIds, ids);
@@ -435,7 +416,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
       return callback('empty_graph');
     }
 
-    graph.forEach(function(resource) {
+    _.forEach(graph, function(resource) {
       var id = resource['@id'];
       var type = resource['@type'];
       // console.log('%s a %s', resource['@id'], type);

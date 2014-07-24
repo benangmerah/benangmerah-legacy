@@ -23,7 +23,7 @@
     "js-yaml": "^3.0.2",
     "underscore": "^1.6.0",
     "hbs": "^2.6.0",
-    "starmutt": "^0.4.0",
+    "starmutt": "^0.4.1",
     "memory-cache": "0.0.5",
     "handlebars-helpers": "^0.5.5",
     "lodash": "^2.4.1",
