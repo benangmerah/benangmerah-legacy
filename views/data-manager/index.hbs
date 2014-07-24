@@ -60,7 +60,10 @@
 			<div class="panel panel-default">
 				<div class="panel-heading"><h4>{{name}}</h4></div>
 					<div class="panel-body">
-				    	{{#markdown}}{{description}}{{/markdown}}
+							{{#markdown}}{{description}}{{/markdown}}
+							<form action="/data-manager/driver/fetch/{{name}}" method="POST">
+								<button class="btn btn-success">Fetch all instances</button>
+							</form>
 					</div>
 				</div>
 			</div>

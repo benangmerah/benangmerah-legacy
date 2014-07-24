@@ -694,6 +694,19 @@ function submitFetchInstance(req, res, next) {
   async.series([checkId, doFetch], render);
 }
 
+function submitFetchAllInstancesOfDriver(req, res, next) {
+  var driverName = req.driverName;
+  async.each(driverInstances, function(instance, callback) {
+    if (instance['bm:driverName'] === driverName && instance.instance) {
+      instance.instance.fetch();
+    }
+
+    callback();
+  }, function() {
+    res.redirect('/data-manager/');
+  });
+}
+
 // TODO: use authentication
 router.use(init);
 router.use(requireAuthentication);
@@ -708,3 +721,4 @@ router.route('/instance/edit/:id')
 router.post('/instance/delete/:id', submitDeleteInstance);
 router.post('/instance/clear/:id', submitClearInstance);
 router.post('/instance/fetch/:id', submitFetchInstance);
+router.post('/driver/fetch/:driverName', submitFetchAllInstancesOfDriver);
