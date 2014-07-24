@@ -26,12 +26,12 @@ var fragmentLength =
 var initiated = false;
 var availableDrivers = [];
 var driverDetails = {};
-Object.keys(require('../package').dependencies).forEach(function(key) {
+for (var key in require('../package').dependencies) {
   if (/^benangmerah-driver-/.test(key)) {
     availableDrivers.push(key);
     driverDetails[key] = require(key + '/package');
   }
-});
+}
 
 var driverInstances = [];
 var instanceLogs = {};
@@ -116,6 +116,7 @@ DriverSparqlStream.prototype.commit = function(callback) {
       if (self.finished && self.pendingQueryCount === 0) {
         self.instance.log('info', self.queryCount + ' queries completed.');
         self.instance.log('finish', 'Idle.');
+        self.emit('end');
       }
     });
 };
@@ -197,14 +198,43 @@ function prepareInstance(rawDriverInstance) {
     var instance = new constructor();
     instance.setOptions(preparedInstance.options);
 
-    var sparqlStream = new DriverSparqlStream({
-      instance: preparedInstance,
-      graphUri: preparedInstance['@id']
-    });
-    var tripleWriter = n3.Writer(sparqlStream);
+    var sparqlStream, tripleWriter;
 
-    instance.on('addTriple', tripleWriter.addTriple.bind(tripleWriter));
-    instance.on('log', preparedInstance.log.bind(preparedInstance));
+    function initStreams() {
+      sparqlStream = new DriverSparqlStream({
+        instance: preparedInstance,
+        graphUri: preparedInstance['@id']
+      });
+      tripleWriter = n3.Writer(sparqlStream);
+
+      sparqlStream.on('end', onEnd);
+    }
+    function onEnd() {
+      sparqlStream = undefined;
+      tripleWriter = undefined;
+
+      if (driverName.indexOf('meta-') === -1) {
+        return;
+      }
+
+      preparedInstance.log('info',
+        'Meta driver: refreshing driver instance cache...');
+      fetchDriverInstances(function() {
+        preparedInstance.log('finish', 'Idle.');
+      });
+    }
+
+    initStreams();
+    instance.on('addTriple', function(s, p, o) {
+      if (!tripleWriter) {
+        initStreams();
+      }
+
+      tripleWriter.addTriple(s, p, o);
+    });
+    instance.on('log', function(level, message) {
+      preparedInstance.log(level, message);
+    });
     instance.on('finish', function() {
       tripleWriter.end();
       preparedInstance.log('info', 'Finished fetching.');
@@ -243,11 +273,20 @@ function fetchDriverInstances(callback) {
       graph = [data];
     }
 
-    if (!_.isEmpty(graph)) {
-      driverInstances = graph.map(prepareInstance);
+    if (_.isEmpty(graph)) {
+      return callback();
     }
 
-    initiated = true;
+    driverInstances = _.map(graph, prepareInstance);
+
+    // Clear references to stale graphs
+    var instanceIds = _.pluck(driverInstances, '@id');
+    for (var id in instanceObjects) {
+      if (instanceIds.indexOf(id) === -1) {
+        delete instanceObjects[id];
+        delete instanceLogs[id];
+      }
+    };
 
     return callback();
   });
@@ -265,9 +304,13 @@ function init(req, res, next) {
   res.locals.availableDrivers = availableDrivers;
   res.locals.driverDetails = driverDetails;
 
-  if (!initiated && req.url !== '/') {
-    return fetchDriverInstances(next);
+  if (!initiated) {
+    return fetchDriverInstances(function() {
+      initiated = true;
+      next();
+    });
   }
+
   next();
 }
 
@@ -484,20 +527,15 @@ function submitEditInstance(req, res, next) {
         return callback(err);
       }
 
-      if (id !== req.body['@id']) {
-        delete instanceObjects[id];
-      }
-
       fetchDriverInstances(callback);
     });
   }
 
+  // This doesn't actually work yet for some reason.
   function doMove(callback) {
     if (id === req.body['@id']) {
       return callback();
     }
-
-    delete instanceObjects[id];
 
     var baseQuery =
       'delete { graph <%s> { ?x ?y ? z} } ' + 
