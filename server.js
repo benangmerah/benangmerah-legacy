@@ -89,9 +89,7 @@ app.use(logger('dev'));
 app.use('/css', lessMiddleware(
   __dirname + '/src/less',
   { dest: __dirname + '/public/css',
-    force: (app.get('env') === 'development'),
-    compiler: {
-      compress: ('development' !== app.get('env')) } }
+    compiler: { compress: ('development' !== app.get('env')) } }
 ));
 app.use(serveStatic(__dirname + '/public'));
 app.use(bodyParser.urlencoded({ extended: true }));
