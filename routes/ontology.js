@@ -153,11 +153,10 @@ function describePlace(req, res, next) {
   }
 
   function getDatacubes(callback) {
+    // TODO union with other sameAs here
     var condition = util.format(
-      'graph ?g { ?observation bm:refArea ?x. } ' +
-      'graph ?h { { ?x owl:sameAs <%s>. } ' +
-      'union { <%s> owl:sameAs ?x. } }',
-      req.resourceURI, req.resourceURI);
+      'graph ?g { ?observation bm:refArea <%s> } ',
+      vars.thisPlace['owl:sameAs']['@id']);
 
     shared.getDatacube(condition, ['bm:refArea'], function(err, datasets) {
       if (err) {
@@ -213,9 +212,12 @@ function describePlace(req, res, next) {
     async.series([execDescribeQuery, getParent, getChildren, getStats], render);
   }
   else {
-    async.series(
-      [execDescribeQuery, getParent, getChildren, getDatacubes],
-      render);
+    async.series([
+      function(callback) {
+        async.parallel([execDescribeQuery, getParent, getChildren], callback);
+      },
+      getDatacubes
+    ], render);
   }
 }
 
