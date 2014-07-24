@@ -694,14 +694,6 @@ function submitFetchInstance(req, res, next) {
   async.series([checkId, doFetch], render);
 }
 
-function listDrivers(req, res, next) {
-  res.send('List drivers');
-}
-
-function viewDriver(req, res, next) {
-  res.send('View drivers');
-}
-
 // TODO: use authentication
 router.use(init);
 router.use(requireAuthentication);
@@ -716,5 +708,3 @@ router.route('/instance/edit/:id')
 router.post('/instance/delete/:id', submitDeleteInstance);
 router.post('/instance/clear/:id', submitClearInstance);
 router.post('/instance/fetch/:id', submitFetchInstance);
-router.get('/driver/view/:driverName', viewDriver);
-router.get('/driver', listDrivers);
