@@ -5,6 +5,10 @@
   "version": "0.3.0",
   "private": true,
   "dependencies": {
+    "benangmerah-driver-datagoid": "benangmerah/data.go.id-ld",
+    "benangmerah-driver-wilayah": "benangmerah/wilayah",
+    "benangmerah-driver-mp3ei": "benangmerah/mp3ei-ld",
+    "benangmerah-driver-meta-datagoid": "benangmerah/driver-meta-datagoid",
     "express": "4.x",
     "async": "^0.7.0",
     "require-all": "0.0.8",
@@ -33,9 +37,6 @@
     "serve-favicon": "^2.0.1",
     "javascript-natural-sort": "^0.7.1",
     "underscore.string": "^2.3.3",
-    "benangmerah-driver-datagoid": "benangmerah/data.go.id-ld",
-    "benangmerah-driver-wilayah": "benangmerah/wilayah",
-    "benangmerah-driver-mp3ei": "benangmerah/mp3ei-ld",
     "express-output-cache": "^0.1.0",
     "redis": "^0.11.0"
   }
