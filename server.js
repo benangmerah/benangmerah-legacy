@@ -37,6 +37,7 @@ if (config.stardog) {
   conn.setEndpoint(config.stardog.endpoint);
   conn.setCredentials(config.stardog.username, config.stardog.password);
   conn.setDefaultDatabase(config.stardog.database);
+  conn.setConcurrency(config.stardog.concurrency || 4);
 }
 
 // REDIS INIT ---
@@ -107,23 +108,23 @@ app.use(ontologyRoutes);
 
 if ('development' === app.get('env')) {
   app.use(errorHandler({ dumpExceptions: true, showStack: true }));
-}
-if (config.redis) {
-  function onHit(key) {
-    console.log('Cache HIT  ' + key);
+  if (config.redis) {
+    function onHit(key) {
+      console.log('Cache HIT  ' + key);
+    }
+    function onMiss(key) {
+      console.log('Cache MISS ' + key);
+    }
+    function onPut(key) {
+      console.log('Cache PUT  ' + key);
+    }
+    conn.cacheEvents.on('hit', onHit);
+    conn.cacheEvents.on('miss', onMiss);
+    conn.cacheEvents.on('put', onPut);
+    outputCache.on('hit', onHit);
+    outputCache.on('miss', onMiss);
+    outputCache.on('put', onPut);
   }
-  function onMiss(key) {
-    console.log('Cache MISS ' + key);
-  }
-  function onPut(key) {
-    console.log('Cache PUT  ' + key);
-  }
-  conn.cacheEvents.on('hit', onHit);
-  conn.cacheEvents.on('miss', onMiss);
-  conn.cacheEvents.on('put', onPut);
-  outputCache.on('hit', onHit);
-  outputCache.on('miss', onMiss);
-  outputCache.on('put', onPut);
 }
 
 // RUN EXPRESS ---
