@@ -270,6 +270,25 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
       });
   }
 
+  function getGraphAltTemp(query, callback) {
+    var start = _.now();
+    var queryOptions = {
+      query: query,
+      mimetype: 'text/plain'
+    };
+
+    conn.execQuery(queryOptions, function(err, nquads) {
+      if (err) {
+        return callback(err);
+      }
+      jsonld.fromRDF(nquads, {format: 'application/nquads'}, function(err, doc) {
+        console.log(query);
+        console.log('Query took %d\n', _.now() - start);
+        callback(err, doc);
+      });
+    });
+  }
+
   function getObservations(callback) {
     var query = 'construct { ?observation ?p ?o } ' +
                 'where { graph ?g { ' +
@@ -278,7 +297,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
                 conditionsString + ' }';
 
     var start = _.now();
-    conn.getGraph(query, function(err, graph) {
+    getGraphAltTemp(query, function(err, graph) {
       if (err) {
         return callback(err);
       }
@@ -306,27 +325,33 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   }
 
   function getProperties(callback) {
-    async.each(propertyIds, function(propertyId, callback) {
+    async.map(propertyIds, function(propertyId, callback) {
       var baseQuery = 'construct { <%s> ?p ?o. } ' +
                       'where { graph ?g { <%s> ?p ?o. } }';
 
       var query = util.format(baseQuery, propertyId, propertyId);
-      
-      conn.getGraph(query, function(err, graph) {
-        if (err) {
-          return callback(err);
-        }
 
-        allGraph = _.union(allGraph, graph);
+      var queryOptions = {
+        query: query,
+        mimetype: 'text/plain'
+      };
 
-        return callback(null);
-      });
-    }, function(err) {
+      conn.execQuery(queryOptions, callback);
+    }, function(err, allNquads) {
       if (err) {
         return callback(err);
       }
 
-      return callback();
+      var nquads = allNquads.join('\n');
+      jsonld.fromRDF(nquads, {format: 'application/nquads'},
+        function(err, graph) {
+          if (err) {
+            return callback(err);
+          }
+
+          allGraph = _.union(allGraph, graph);
+          callback();
+        });
     });
   }
 
@@ -337,7 +362,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
 
       var query = util.format(baseQuery, datasetId, datasetId);
       
-      conn.getGraph(query, function(err, graph) {
+      getGraphAltTemp(query, function(err, graph) {
         if (err) {
           return callback(err);
         }
@@ -361,30 +386,34 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   }
 
   function getDsds(callback) {
-    async.each(dsdIds, function(dsdId, callback) {
+    async.map(dsdIds, function(dsdId, callback) {
       var baseQuery =
         'construct { <%s> ?p ?o. <%s> qb:component ?c. ?c ?cP ?cO. } ' +
         'where { graph ?g { <%s> ?p ?o. <%s> qb:component ?c. ?c ?cP ?cO. } }';
 
       var query = util.format(baseQuery, dsdId, dsdId, dsdId, dsdId);
+
+      var queryOptions = {
+        query: query,
+        mimetype: 'text/plain'
+      };
       
-      // console.log(query);
-      conn.getGraph(query, function(err, graph) {
-        // console.log(graph);
-        if (err) {
-          return callback(err);
-        }
-
-        allGraph = _.union(allGraph, graph);
-
-        return callback(null);
-      });
-    }, function(err) {
+      conn.execQuery(queryOptions, callback);
+    }, function(err, allNquads) {
       if (err) {
         return callback(err);
       }
 
-      return callback();
+      var nquads = allNquads.join('\n');
+      jsonld.fromRDF(nquads, {format: 'application/nquads'},
+        function(err, graph) {
+          if (err) {
+            return callback(err);
+          }
+
+          allGraph = _.union(allGraph, graph);
+          callback();
+        });
     });
   }
 
