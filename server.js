@@ -46,7 +46,7 @@ if (config.redis) {
     config.outputCache.cacheClient = redisClient;
 
     if (config.stardog && config.stardog.cache) {
-      if (typeof config.cache === 'object') {
+      if (typeof config.stardog.cache === 'object') {
         conn.setCacheClient(redisClient, config.stardog.cache.ttl);
       }
       else {
