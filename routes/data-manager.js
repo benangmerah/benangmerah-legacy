@@ -26,6 +26,12 @@ var fragmentLength =
 var initiated = false;
 var availableDrivers = [];
 var driverDetails = {};
+Object.keys(require('../package').dependencies).forEach(function(key) {
+  if (/^benangmerah-driver-/.test(key)) {
+    availableDrivers.push(key);
+    driverDetails[key] = require(key + '/package');
+  }
+});
 
 var driverInstances = [];
 var instanceLogs = {};
@@ -215,26 +221,13 @@ function prepareInstance(rawDriverInstance) {
   return preparedInstance;
 }
 
-function initDataManager(callback, force) {
-  if (initiated && !force) {
-    return callback();
-  }
-
-  var dependencies = require('../package').dependencies;
-
-  availableDrivers = [];
-  Object.keys(dependencies).forEach(function(key) {
-    if (/^benangmerah-driver-/.test(key)) {
-      availableDrivers.push(key);
-      driverDetails[key] = require(key + '/package');
-    }
-  });
-
+function fetchDriverInstances(callback) {
   conn.getGraph({
     query: 'CONSTRUCT { ?x ?p ?o. } ' +
            'WHERE { GRAPH ?g { ?x a bm:DriverInstance. ?x ?p ?o. } }',
     form: 'compact',
-    context: shared.context
+    context: shared.context,
+    cache: false
   }, function(err, data) {
     if (err) {
       return callback(err);
@@ -271,16 +264,27 @@ function init(req, res, next) {
   res.locals.layout = 'layouts/data-manager';
   res.locals.availableDrivers = availableDrivers;
   res.locals.driverDetails = driverDetails;
-  initDataManager(next);
+
+  if (!initiated && req.url !== '/') {
+    return fetchDriverInstances(next);
+  }
+  next();
 }
 
 function index(req, res, next) {
-  res.render('data-manager/index', {
-    availableDrivers: availableDrivers,
-    driverInstances: driverInstances,
-    query: req.query,
-    queryQueueLength: sharedQueryQueue.length()
-  });
+  function render(err) {
+    if (err) {
+      res.locals.error = err;
+    }
+
+    res.locals.driverInstances = driverInstances;
+    res.locals.query = req.query;
+    res.locals.queryQueueLength = sharedQueryQueue.length();
+
+    res.render('data-manager/index');
+  }
+
+  fetchDriverInstances(render);
 }
 
 function viewInstance(req, res, next) {
@@ -362,7 +366,7 @@ function submitCreateInstance(req, res, next) {
         return callback(err);
       }
 
-      initDataManager(callback, true);
+      fetchDriverInstances(callback);
     });
   }
 
@@ -416,7 +420,7 @@ function editInstance(req, res, next) {
     return res.render('data-manager/edit-instance', locals);
   }
 
-  async.series([initDataManager, getInstance], render);
+  async.series([getInstance], render);
 }
 
 function submitEditInstance(req, res, next) {
@@ -480,8 +484,29 @@ function submitEditInstance(req, res, next) {
         return callback(err);
       }
 
-      initDataManager(callback, true);
+      if (id !== req.body['@id']) {
+        delete instanceObjects[id];
+      }
+
+      fetchDriverInstances(callback);
     });
+  }
+
+  function doMove(callback) {
+    if (id === req.body['@id']) {
+      return callback();
+    }
+
+    delete instanceObjects[id];
+
+    var baseQuery =
+      'delete { graph <%s> { ?x ?y ? z} } ' + 
+      'insert { graph <%s> { ?x ?y ? z } } ' +
+      'using <%s> where { ?x ?y ? z }';
+
+    var moveQuery = util.format(baseQuery, id, req.body['@id'], id);
+
+    conn.execQuery(moveQuery, callback);
   }
 
   function render(err) {
@@ -502,7 +527,7 @@ function submitEditInstance(req, res, next) {
                         encodeURIComponent(req.body['@id']));
   }
 
-  async.series([checkId, validateForm, doDelete, doInsert], render);
+  async.series([checkId, validateForm, doDelete, doInsert, doMove], render);
 }
 
 function submitDeleteInstance(req, res, next) {
@@ -523,12 +548,26 @@ function submitDeleteInstance(req, res, next) {
     return callback('not_found');
   }
 
+  function doClear(callback) {
+    var baseQuery = 'clear graph <%s>';
+    var query = util.format(baseQuery, id);
+
+    conn.execQuery(query, callback);
+  }
+
   function doDelete(callback) {
     var baseQuery =
       'delete { graph ?g { <%s> ?y ?z } } where { graph ?g { <%s> ?y ?z } }';
     var query = util.format(baseQuery, id, id);
 
-    conn.execQuery(query, callback);
+    conn.execQuery(query, function(err) {
+      if (err) {
+        return callback(err);
+      }
+
+      delete instanceObjects[id];
+      callback();
+    });
   }
 
   function render(err) {
@@ -540,7 +579,7 @@ function submitDeleteInstance(req, res, next) {
                         encodeURIComponent(id));
   }
 
-  async.series([checkId, doDelete], render);
+  async.series([checkId, doClear, doDelete], render);
 }
 
 function submitClearInstance(req, res, next) {
