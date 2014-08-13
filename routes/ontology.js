@@ -121,37 +121,6 @@ function describePlace(req, res, next) {
     });
   }
 
-  function getStats(callback) {
-    var statsQuery = util.format(
-      'select distinct ' +
-      '?dataset ?datasetLabel ?measureLabel ?period ?measureValue { ' +
-      '   ?o a qb:Observation. ' +
-      '   ?o qb:dataSet ?dataset. ' +
-      '   ?dataset rdfs:label ?datasetLabel. ' +
-      '   ?o bm:refArea ?x. ' +
-      '   { ?x owl:sameAs <%s>. } union { <%s> owl:sameAs ?x. } ' +
-      '   ?o bm:refPeriod ?period. ' +
-      '   ?o ?measure ?measureValue. ' +
-      '   ?measure a qb:MeasureProperty. ' +
-      '   ?measure rdfs:label ?measureLabel. ' +
-      ' } order by asc(?measureLabel) asc(?period)',
-       // TODO add language filter
-       req.resourceURI, req.resourceURI);
-
-    var start = _.now();
-    conn.getResultsValues({ query: statsQuery, reasoning: 'QL' },
-      function(err, data) {
-              var end = _.now();
-      console.log('Legacy query took %d msecs.', end - start);
-        if (err) {
-          return callback(err);
-        }
-        else {
-          parseStats(data, callback);
-        }
-      });
-  }
-
   function getDatacubes(callback) {
     // TODO union with other sameAs here
     var condition = util.format(
@@ -169,34 +138,6 @@ function describePlace(req, res, next) {
     });
   }
 
-  function parseStats(rows, callback) {
-    var datasets = {};
-
-    rows.forEach(function(row) {
-      var dataset = datasets[row.dataset];
-      if (!dataset) {
-        dataset = datasets[row.dataset] = {};
-        dataset.label = row.datasetLabel;
-        dataset.data = {};
-        dataset.periods = [];
-      }
-
-      if (dataset.periods.indexOf(row.period) === -1) {
-        dataset.periods.push(row.period);
-      }
-
-      var measure = dataset.data[row.measureLabel];
-      if (!measure) {
-        measure = dataset.data[row.measureLabel] = {};
-      }
-      measure[row.period] = row.measureValue;
-    });
-
-    vars.datasets = datasets;
-
-    callback();
-  }
-
   function render(err) {
     console.log('Rendering..');
     if (err) {
@@ -208,17 +149,12 @@ function describePlace(req, res, next) {
     }));
   }
 
-  if (req.query.legacy) {
-    async.series([execDescribeQuery, getParent, getChildren, getStats], render);
-  }
-  else {
-    async.series([
-      function(callback) {
-        async.parallel([execDescribeQuery, getParent, getChildren], callback);
-      },
-      getDatacubes
-    ], render);
-  }
+  async.series([
+    function(callback) {
+      async.parallel([execDescribeQuery, getParent, getChildren], callback);
+    },
+    getDatacubes
+  ], render);
 }
 
 function describeDataset(req, res, next) {
