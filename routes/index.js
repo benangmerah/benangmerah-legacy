@@ -112,6 +112,10 @@ function search(req, res, next) {
   }
 
   function processResults(callback) {
+    if (!resultsGraph) {
+      return callback();
+    }
+
     resultsGraph = shared.pointerizeGraph(resultsGraph);
 
     resultsGraph.forEach(function(result) {
