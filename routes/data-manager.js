@@ -279,7 +279,8 @@ function fetchDriverInstances(callback) {
   conn.getGraph({
     query: 'CONSTRUCT { ?x ?p ?o. } ' +
            'WHERE { GRAPH <' + metaGraphIri + '> { ' +
-           ' ?x a bm:DriverInstance. ?x ?p ?o. } }',
+           ' ?x a bm:DriverInstance. ?x ?p ?o.' +
+           ' FILTER (?p != bm:specifies) } }',
     form: 'compact',
     context: shared.context,
     cache: false
