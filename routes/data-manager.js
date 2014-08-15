@@ -331,6 +331,10 @@ var literalReplacements =
 var literalMatcher = /^"((?:.|\n|\r)*)"(?:\^\^<(.+)>|@([\-a-z]+))?$/i;
 var prefixUris = _.invert(shared.prefixes);
 function toNT(node) {
+  if (!node) {
+    return '';
+  }
+
   var value, buf;
   if (node.type) {
     // SPARQL binding
@@ -345,9 +349,9 @@ function toNT(node) {
       }
       buf += '"' + value + '"';
 
-      if (node.type) {
+      if (node.datatype) {
         buf += '^^';
-        buf += toNT(node.type);
+        buf += toNT(node.datatype);
       }
 
       if (node.language) {
@@ -403,7 +407,74 @@ function toNT(node) {
   return '<' + node + '>';
 }
 
-function clearInstanceData(driverInstance) {}
+function clearInstanceData(instanceId, callback) {
+  var tripleResults = [];
+
+  var instance = instanceObjects[instanceId];
+
+  instance.info('Initiating clearing routine...');
+
+  function getTriples(callback) {
+    var getTriplesQuery =
+      'select ?tripleId ?subject ?predicate ' + 
+        '?object (count(distinct ?d) as ?count) ' +
+      'where { graph <' + metaGraphIri + '> { ' +
+        '<' + instanceId + '> bm:specifies ?tripleId. ' +
+        '?tripleId rdf:subject ?subject; ' + 
+          'rdf:predicate ?predicate; ' +
+          'rdf:object ?object. ' +
+        'optional { ?d bm:specifies ?tripleId } ' +
+      '} } ' +
+      'group by ?tripleId ?subject ?predicate ?object';
+
+    instance.info('Fetching corresponding triples...');
+    conn.getResults({ query: getTriplesQuery, cache: false },
+      function(err, results) {
+        if (err) {
+          return callback(err);
+        }
+
+        tripleResults = _.filter(results, function(result) {
+          return result.count.value <= 1;
+        });
+
+        callback();
+      });
+  }
+
+  function clearTriples(callback) {
+    instance.info(tripleResults.length + ' triples found.');
+
+    var query = 'delete data {';
+    tripleResults.forEach(function(result) {
+      query +=
+        toNT(result.subject) + ' ' +
+        toNT(result.predicate) + ' ' +
+        toNT(result.object) + '.\n';
+    });
+
+    query += 'graph <' + metaGraphIri + '> {';
+    tripleResults.forEach(function(result) {
+      query +=
+        '<' + instanceId + '> bm:specifies <' +
+        result.tripleId.value + '>.\n';
+    });
+
+    query += '} }';
+
+    instance.info('Deleting triples...');
+    conn.execQuery(query, function(err) {
+      if (err) {
+        return callback(err);
+      }
+
+      instance.log('finish', 'Finished clearing.');
+      callback();
+    });
+  }
+
+  async.series([getTriples, clearTriples], callback);
+}
 
 // ---
 
@@ -618,9 +689,9 @@ function submitEditInstance(req, res, next) {
   }
 
   function doDelete(callback) {
-    var baseQuery =
-      'delete { graph ?g { <%s> ?y ?z } } where { graph ?g { <%s> ?y ?z } }';
-    var query = util.format(baseQuery, id, id);
+    var query =
+      'delete { graph <' + metaGraphIri + '> { <' + id + '> ?y ?z } } ' +
+      'where { graph <' + metaGraphIri + '> { <' + id + '> ?y ?z } }';
 
     conn.execQuery(query, callback);
   }
@@ -701,16 +772,13 @@ function submitDeleteInstance(req, res, next) {
   }
 
   function doClear(callback) {
-    var baseQuery = 'clear graph <%s>';
-    var query = util.format(baseQuery, id);
-
-    conn.execQuery(query, callback);
+    clearInstanceData(id, callback);
   }
 
   function doDelete(callback) {
-    var baseQuery =
-      'delete { graph ?g { <%s> ?y ?z } } where { graph ?g { <%s> ?y ?z } }';
-    var query = util.format(baseQuery, id, id);
+    var query =
+      'delete { graph <' + metaGraphIri + '> { <' + id + '> ?y ?z } } ' +
+      'where { graph <' + metaGraphIri + '> { <' + id + '> ?y ?z } }';
 
     conn.execQuery(query, function(err) {
       if (err) {
@@ -754,10 +822,7 @@ function submitClearInstance(req, res, next) {
   }
 
   function doClear(callback) {
-    var baseQuery = 'clear graph <%s>';
-    var query = util.format(baseQuery, id);
-
-    conn.execQuery(query, callback);
+    clearInstanceData(id, callback);
   }
 
   function render(err) {
