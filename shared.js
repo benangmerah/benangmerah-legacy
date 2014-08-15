@@ -22,6 +22,7 @@ shared.XSD_NS = 'http://www.w3.org/2001/XMLSchema#';
 shared.GEO_NS = 'http://www.w3.org/2003/01/geo/wgs84_pos#';
 shared.QB_NS = 'http://purl.org/linked-data/cube#';
 shared.BM_NS = 'http://benangmerah.net/ontology/';
+shared.META_NS = 'http://meta.benangmerah.net/';
 shared.DCT_NS = 'http://purl.org/dc/terms/';
 
 shared.context = shared.prefixes = {
@@ -32,6 +33,7 @@ shared.context = shared.prefixes = {
   'geo': shared.GEO_NS,
   'qb': shared.QB_NS,
   'bm': shared.BM_NS,
+  'meta': shared.META_NS,
   'dct': shared.DCT_NS
 };
 
@@ -43,7 +45,7 @@ shared.getInferredTypes = function(uri, callback) {
   }
 
   var query =
-    util.format('select ?type where { graph ?g { <%s> a ?type } }', uri);
+    util.format('select ?type where { <%s> a ?type }', uri);
   conn.getColValues(
     { query: query, reasoning: 'QL' }, function(err, resolvedTypes) {
       if (err) {
@@ -263,18 +265,17 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
         if (err) {
           return callback(err);
         }
-        string = string.replace(/<tag:sparql-param:\?observation>/g, 
+        conditionsString = string.replace(/<tag:sparql-param:\?observation>/g, 
                                 '?observation');
-        conditionsString = 'graph ?g { ' + string + ' } ';
         callback();
       });
   }
 
   function getObservations(callback) {
     var query = 'construct { ?observation ?p ?o } ' +
-                'where { graph ?g { ' +
+                'where { ' +
                 '?observation a qb:Observation. ' +
-                '?observation ?p ?o. } ' +
+                '?observation ?p ?o. ' +
                 conditionsString + ' }';
 
     var start = _.now();
@@ -308,7 +309,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   function getProperties(callback) {
     async.map(propertyIds, function(propertyId, callback) {
       var baseQuery = 'construct { <%s> ?p ?o. } ' +
-                      'where { graph ?g { <%s> ?p ?o. } }';
+                      'where { <%s> ?p ?o. }';
 
       var query = util.format(baseQuery, propertyId, propertyId);
 
@@ -339,7 +340,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
   function getDatasets(callback) {
     async.each(datasetIds, function(datasetId, callback) {
       var baseQuery = 'construct { <%s> ?p ?o. } ' +
-                      'where { graph ?g { <%s> ?p ?o. } }';
+                      'where { <%s> ?p ?o. }';
 
       var query = util.format(baseQuery, datasetId, datasetId);
       
@@ -370,7 +371,7 @@ shared.getDatacube = function(conditions, fixedProperties, callback) {
     async.map(dsdIds, function(dsdId, callback) {
       var baseQuery =
         'construct { <%s> ?p ?o. <%s> qb:component ?c. ?c ?cP ?cO. } ' +
-        'where { graph ?g { <%s> ?p ?o. <%s> qb:component ?c. ?c ?cP ?cO. } }';
+        'where { <%s> ?p ?o. <%s> qb:component ?c. ?c ?cP ?cO. }';
 
       var query = util.format(baseQuery, dsdId, dsdId, dsdId, dsdId);
 

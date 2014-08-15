@@ -57,7 +57,7 @@ function describePlace(req, res, next) {
 
   function execDescribeQuery(callback) {
     var baseQuery = 'construct { <%s> ?p ?o } ' +
-                    'where { graph ?g { <%s> ?p ?o } }';
+                    'where { <%s> ?p ?o }';
     var describeQuery =
       util.format(baseQuery, req.resourceURI, req.resourceURI);
 
@@ -78,8 +78,8 @@ function describePlace(req, res, next) {
   function getParent(callback) {
     var parentQuery = util.format(
       'construct { ?parent ?x ?y } ' +
-      'where { graph ?g { ' +
-      '<%s> bm:hasParent ?parent. ?parent ?x ?y } }',
+      'where { ' +
+      '<%s> bm:hasParent ?parent. ?parent ?x ?y }',
       req.resourceURI
     );
 
@@ -103,7 +103,7 @@ function describePlace(req, res, next) {
   function getChildren(callback) {
     var childrenQuery = util.format(
       'construct { ?child ?p ?o } ' +
-      'where { graph ?g { ?child bm:hasParent <%s>. ?child ?p ?o. } }',
+      'where { ?child bm:hasParent <%s>. ?child ?p ?o. }',
       req.resourceURI
     );
 
@@ -124,7 +124,7 @@ function describePlace(req, res, next) {
   function getDatacubes(callback) {
     // TODO union with other sameAs here
     var condition = util.format(
-      'graph ?g { ?observation bm:refArea <%s> } ',
+      '?observation bm:refArea <%s>',
       vars.thisPlace['owl:sameAs']['@id']);
 
     shared.getDatacube(condition, ['bm:refArea'], function(err, datasets) {
@@ -160,7 +160,7 @@ function describePlace(req, res, next) {
 function describeDataset(req, res, next) {
   function execDescribeQuery(callback) {
     var baseQuery = 'construct { <%s> ?p ?o } ' +
-                    'where { graph ?g { <%s> ?p ?o } }';
+                    'where { <%s> ?p ?o }';
     var describeQuery =
       util.format(baseQuery, req.resourceURI, req.resourceURI);
 
@@ -196,7 +196,7 @@ function describeDataset(req, res, next) {
 function describeThing(req, res, next) {
   function execDescribeQuery(callback) {
     var baseQuery = 'construct { <%s> ?p ?o } ' +
-                    'where { graph ?g { <%s> ?p ?o } }';
+                    'where { <%s> ?p ?o }';
     var describeQuery =
       util.format(baseQuery, req.resourceURI, req.resourceURI);
 
@@ -236,11 +236,11 @@ function describeIndicator(req, res, next) {
 
   function execPeriodsQuery(callback) {
     var baseQuery =
-      'select distinct ?year { graph ?g {' +
+      'select distinct ?year { ' +
       '  [] a qb:Observation;' +
       '     <%s> [];' +
       '     bm:refPeriod ?year.' +
-      '  } }' +
+      '  }' +
       'order by desc(?year)';
 
     var periodsQuery = util.format(baseQuery, req.resourceURI);
@@ -271,18 +271,14 @@ function describeIndicator(req, res, next) {
       '    geo:long ?long.' +
       '}' +
       'where {' +
-      '  graph ?g {' +
-      '    ?x a qb:Observation;' +
-      '      bm:refPeriod "%s"^^xsd:gYear;' +
-      '      <%s> ?val;' +
-      '    bm:refArea ?areax.' +
-      '  }' +
-      '  graph ?h {' +
-      '    ?area owl:sameAs ?areax.' +
-      '    ?area rdfs:label ?o;' +
-      '      geo:lat ?lat;' +
-      '      geo:long ?long.' +
-      '  }' +
+      '  ?x a qb:Observation;' +
+      '    bm:refPeriod "%s"^^xsd:gYear;' +
+      '    <%s> ?val;' +
+      '  bm:refArea ?areax.' +
+      '  ?area owl:sameAs ?areax.' +
+      '  ?area rdfs:label ?o;' +
+      '    geo:lat ?lat;' +
+      '    geo:long ?long.' +
       '  filter (lang(?o) = "") ' +
       '}' +
       'order by desc(?val)';
@@ -347,7 +343,7 @@ function describeIndicator(req, res, next) {
 
   function execDescribeQuery(callback) {
     var baseQuery = 'construct { <%s> ?p ?o } ' +
-                    'where { graph ?g { <%s> ?p ?o } }';
+                    'where { <%s> ?p ?o }';
     var describeQuery =
       util.format(baseQuery, req.resourceURI, req.resourceURI);
 
@@ -390,8 +386,8 @@ function sameAsFallback(req, res, next) {
 
   var query = util.format(
     'select distinct ?twin ' +
-    'where { graph ?g { { ?twin owl:sameAs <%s> } ' +
-    'union { <%s> owl:sameAs ?twin } } }', req.resourceURI);
+    'where { { ?twin owl:sameAs <%s> } ' +
+    'union { <%s> owl:sameAs ?twin } }', req.resourceURI);
 
   return conn.getColValues(query, function(err, col) {
     if (err) {

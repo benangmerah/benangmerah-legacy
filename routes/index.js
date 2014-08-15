@@ -15,7 +15,7 @@ function index(req, res, next) {
   function execQuery(callback) {
     var query =
       'select distinct ?uri ?label ' +
-      'where { graph ?g { ?uri a bm:Provinsi. ?uri rdfs:label ?label } }';
+      'where { ?uri a bm:Provinsi. ?uri rdfs:label ?label }';
 
     conn.getResults(query, callback);
   }
@@ -83,14 +83,14 @@ function search(req, res, next) {
 
     var baseQuery = 
       'construct { ?s ?p ?o. ?s bm:score ?score. } ' +
-      'where { graph ?g { ' +
+      'where { ' +
       '  ?s ?p ?o. ' +
       '  ?s a ?type. ' +
       '  ?s rdfs:label ?l. ' +
       '  ( ?l ?score ) <http://jena.hpl.hp.com/ARQ/property#textMatch> ' +
       '  ( "%s" 0.5 50 ). ' +
       '  filter(?type != bm:DriverInstance) ' +
-      '} }';
+      '}';
 
     var query = util.format(baseQuery, searchQuery.replace(/"/g, '\"'));
 
