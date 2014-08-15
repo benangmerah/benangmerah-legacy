@@ -15,6 +15,7 @@ var router = express.Router();
 module.exports = router;
 
 // Data Manager config
+var metaGraphIri = shared.META_NS;
 var instancesGraphUri =
   config.dataManager && config.dataManager.instancesGraphUri ||
   'tag:benangmerah.net:driver-instances';
@@ -58,31 +59,46 @@ var sharedQueryQueue = async.queue(function(task, callback) {
 }, concurrency);
 
 function DriverSparqlStream(options) {
-  DriverSparqlStream.super_.call(this, { decodeStrings: false });
+  DriverSparqlStream.super_.call(this, {
+    decodeStrings: false,
+    objectMode: true
+  });
   this.instance = options.instance;
   this.graphUri = options.graphUri;
+
+  this.mainBuffer = '';
+  this.internalBuffer = '';
+  this.charCount = 0;
+  this.queryCount = 0;
+  this.pendingQueryCount = 0;
 }
 
-util.inherits(DriverSparqlStream, require('stream').Transform);
+util.inherits(DriverSparqlStream, require('stream').Writable);
 
-DriverSparqlStream.prototype.charCount = 0;
-DriverSparqlStream.prototype.tripleBuffer = '';
-DriverSparqlStream.prototype.fragmentBuffer = '';
-DriverSparqlStream.prototype.queryCount = 0;
-DriverSparqlStream.prototype.pendingQueryCount = 0;
+DriverSparqlStream.prototype._write = function(triple, encoding, callback) {
+  var tripleString =
+    triple.subject + ' ' +
+    triple.predicate + ' ' +
+    triple.object + '.\n';
 
-DriverSparqlStream.prototype._transform = function(chunk, encoding, callback) {
-  this.tripleBuffer += chunk;
-  if (chunk === '.\n') {
-    this.fragmentBuffer += this.tripleBuffer;
-    this.charCount += this.tripleBuffer.length;
-    this.tripleBuffer = '';
+  var metaTripleString =
+    '<' + this.graphUri + '> ' +
+    ' bm:specifies ' +
+    '[ a rdf:Statement; ' +
+      'rdf:subject ' + triple.subject + '; ' +
+      'rdf:predicate ' + triple.predicate + '; ' +
+      'rdf:object ' + triple.object + ' ' +
+    '].';
 
-    if (this.charCount >= fragmentLength) {
-      this.charCount = 0;
-      this.commit();
-      this.fragmentBuffer = '';
-    }
+  this.mainBuffer += tripleString;
+  this.metaBuffer += metaTripleString;
+  this.charCount += tripleString.length + metaTripleString.length;
+
+  if (this.charCount >= fragmentLength) {
+    this.charCount = 0;
+    this.commit();
+    this.mainBuffer = '';
+    this.metaBuffer = '';
   }
   callback();
 };
@@ -95,16 +111,17 @@ DriverSparqlStream.prototype._flush = function(callback) {
 
 DriverSparqlStream.prototype.commit = function(callback) {
   var self = this;
-  var fragment = self.fragmentBuffer;
   var baseQuery, query;
+  var mainFragment = self.mainBuffer;
+  var metaFragment = self.metaBuffer;
 
-  if (self.graphUri) {
-    baseQuery = 'INSERT DATA { GRAPH <%s> {\n%s} }\n';
-    query = util.format(baseQuery, self.graphUri, fragment);
+  if (self.isMeta) {
+    baseQuery = 'INSERT DATA { GRAPH <%s> { %s %s } }\n';
+    query = util.format(baseQuery, metaGraphIri, mainFragment, metaFragment);
   }
   else {
-    baseQuery = 'INSERT DATA {\n%s}\n';
-    query = util.format(baseQuery, fragment);
+    baseQuery = 'INSERT DATA { %s GRAPH <%s> { %s } }\n';
+    query = util.format(baseQuery, mainFragment, metaGraphIri, metaFragment);
   }
 
   ++self.queryCount;
@@ -203,7 +220,8 @@ function prepareInstance(rawDriverInstance) {
     var initStreams = function() {
       sparqlStream = new DriverSparqlStream({
         instance: preparedInstance,
-        graphUri: preparedInstance['@id']
+        graphUri: preparedInstance['@id'],
+        isMeta: _.contains(driverName, '-meta-')
       });
       tripleWriter = n3.Writer(sparqlStream);
 
@@ -231,7 +249,12 @@ function prepareInstance(rawDriverInstance) {
         initStreams();
       }
 
-      tripleWriter.addTriple(s, p, o);
+      // tripleWriter.addTriple(s, p, o);
+      sparqlStream.write({
+        subject: toNT(s),
+        predicate: toNT(p),
+        object: toNT(o)
+      });
     });
     instance.on('log', function(level, message) {
       preparedInstance.log(level, message);
@@ -255,7 +278,8 @@ function prepareInstance(rawDriverInstance) {
 function fetchDriverInstances(callback) {
   conn.getGraph({
     query: 'CONSTRUCT { ?x ?p ?o. } ' +
-           'WHERE { GRAPH ?g { ?x a bm:DriverInstance. ?x ?p ?o. } }',
+           'WHERE { GRAPH <' + metaGraphIri + '> { ' +
+           ' ?x a bm:DriverInstance. ?x ?p ?o. } }',
     form: 'compact',
     context: shared.context,
     cache: false
@@ -292,6 +316,16 @@ function fetchDriverInstances(callback) {
     return callback();
   });
 }
+
+function toNT(text) {
+  if (text[0] === '"') {
+    return text;
+  }
+
+  return '<' + text + '>';
+}
+
+function clearInstanceData(driverInstance) {}
 
 // ---
 
@@ -405,7 +439,7 @@ function submitCreateInstance(req, res, next) {
       'bm:driverName': req.body['bm:driverName'],
       'bm:optionsYAML': req.body['bm:optionsYAML'],
       'bm:enabled': req.body['bm:enabled'] ? true : false
-    }, instancesGraphUri, function(err, data) {
+    }, metaGraphIri, function(err, data) {
       if (err) {
         return callback(err);
       }
@@ -569,6 +603,7 @@ function submitEditInstance(req, res, next) {
   async.series([checkId, validateForm, doDelete, doInsert, doMove], render);
 }
 
+// TODO use reification
 function submitDeleteInstance(req, res, next) {
   var id = req.params.id;
 
@@ -621,6 +656,7 @@ function submitDeleteInstance(req, res, next) {
   async.series([checkId, doClear, doDelete], render);
 }
 
+// TODO use reification
 function submitClearInstance(req, res, next) {
   var id = req.params.id;
 
