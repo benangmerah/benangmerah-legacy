@@ -8,6 +8,7 @@
     "benangmerah-driver-datagoid": "benangmerah/data.go.id-ld",
     "benangmerah-driver-wilayah": "benangmerah/wilayah",
     "benangmerah-driver-mp3ei": "benangmerah/mp3ei-ld",
+    "benangmerah-driver-iati": "benangmerah/driver-iati",
     "benangmerah-driver-meta-datagoid": "benangmerah/driver-meta-datagoid",
     "express": "4.x",
     "async": "^0.7.0",
