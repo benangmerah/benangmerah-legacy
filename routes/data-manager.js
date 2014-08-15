@@ -331,13 +331,46 @@ var literalReplacements =
 var literalMatcher = /^"((?:.|\n|\r)*)"(?:\^\^<(.+)>|@([\-a-z]+))?$/i;
 var prefixUris = _.invert(shared.prefixes);
 function toNT(node) {
+  var value, buf;
+  if (node.type) {
+    // SPARQL binding
+    if (node.type === 'literal') {
+      buf = '';
+
+      value = node.value;
+      if (literalEscape.test(value)) {
+        value = value.replace(literalEscapeAll, function (match) {
+          return literalReplacements[match];
+        });
+      }
+      buf += '"' + value + '"';
+
+      if (node.type) {
+        buf += '^^';
+        buf += toNT(node.type);
+      }
+
+      if (node.language) {
+        buf += '@' + node.language;
+      }
+
+      return buf;
+    }
+
+    if (node.type === 'bnode') {
+      return '_:' + node.value;
+    }
+
+    return toNT(node.value);
+  }
+
   if (node[0] === '"') {
     // literal
     var literalMatch = literalMatcher.exec(node);
-    var value = literalMatch[1];
+    value = literalMatch[1];
     var type = literalMatch[2];
     var language = literalMatch[3];
-    var buf = '';
+    buf = '';
     if (literalEscape.test(value)) {
       value = value.replace(literalEscapeAll, function (match) {
         return literalReplacements[match];
