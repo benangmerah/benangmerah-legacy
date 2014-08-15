@@ -1,3 +1,5 @@
+var crypto = require('crypto');
+var stream = require('stream');
 var util = require('util');
 
 var async = require('async');
@@ -48,7 +50,7 @@ var sharedQueryQueue = async.queue(function(task, callback) {
 
   conn.execQuery(query, function(err) {
     if (err) {
-      instance.error('Query failed: ' + err);
+      instance.instance.error('Query failed: ' + err);
       return callback(err);
     }
 
@@ -67,28 +69,31 @@ function DriverSparqlStream(options) {
   this.graphUri = options.graphUri;
 
   this.mainBuffer = '';
-  this.internalBuffer = '';
+  this.metaBuffer = '';
   this.charCount = 0;
   this.queryCount = 0;
   this.pendingQueryCount = 0;
 }
 
-util.inherits(DriverSparqlStream, require('stream').Writable);
+util.inherits(DriverSparqlStream, stream.Transform);
 
-DriverSparqlStream.prototype._write = function(triple, encoding, callback) {
+DriverSparqlStream.prototype._transform = function(triple, encoding, callback) {
   var tripleString =
     triple.subject + ' ' +
     triple.predicate + ' ' +
     triple.object + '.\n';
 
+  var hash = crypto.createHash('sha1');
+  hash.update(tripleString);
+  var tripleHash = hash.digest('hex');
+  var tripleHashIri = shared.META_NS + 'triple/' + tripleHash;
+
   var metaTripleString =
-    '<' + this.graphUri + '> ' +
-    ' bm:specifies ' +
-    '[ a rdf:Statement; ' +
-      'rdf:subject ' + triple.subject + '; ' +
-      'rdf:predicate ' + triple.predicate + '; ' +
-      'rdf:object ' + triple.object + ' ' +
-    '].';
+    '<' + this.graphUri + '> bm:specifies <' + tripleHashIri + '>.\n' +
+    '<' + tripleHashIri + '> a rdf:Statement.\n' +
+    '<' + tripleHashIri + '> rdf:subject ' + triple.subject + '.\n' +
+    '<' + tripleHashIri + '> rdf:predicate ' + triple.predicate + '.\n' +
+    '<' + tripleHashIri + '> rdf:object ' + triple.object + '.\n';
 
   this.mainBuffer += tripleString;
   this.metaBuffer += metaTripleString;
@@ -318,12 +323,51 @@ function fetchDriverInstances(callback) {
   });
 }
 
-function toNT(text) {
-  if (text[0] === '"') {
-    return text;
+var literalEscape    = /["\\\t\n\r\b\f]/;
+var literalEscapeAll = /["\\\t\n\r\b\f]/g;
+var literalReplacements = 
+      { '\\': '\\\\', '"': '\\"', '\t': '\\t',
+        '\n': '\\n', '\r': '\\r', '\b': '\\b', '\f': '\\f' };
+var literalMatcher = /^"((?:.|\n|\r)*)"(?:\^\^<(.+)>|@([\-a-z]+))?$/i;
+var prefixUris = _.invert(shared.prefixes);
+function toNT(node) {
+  if (node[0] === '"') {
+    // literal
+    var literalMatch = literalMatcher.exec(node);
+    var value = literalMatch[1];
+    var type = literalMatch[2];
+    var language = literalMatch[3];
+    var buf = '';
+    if (literalEscape.test(value)) {
+      value = value.replace(literalEscapeAll, function (match) {
+        return literalReplacements[match];
+      });
+    }
+
+    buf = '"' + value + '"';
+    if (type) {
+      buf += '^^';
+      buf += toNT(type);
+    }
+    else if (language) {
+      buf += '@' + language;
+    }
+
+    return buf;
   }
 
-  return '<' + text + '>';
+  if (node[0] === '_') {
+    // bnode
+    return node;
+  }
+
+  // named node
+  var prefixMatch = node.match(/^(.*[#\/])([a-z][\-_a-z0-9]*)$/i);
+  if (prefixMatch && prefixUris[prefixMatch[1]]) {
+    return prefixUris[prefixMatch[1]] + ':' + prefixMatch[2];
+  }
+
+  return '<' + node + '>';
 }
 
 function clearInstanceData(driverInstance) {}
