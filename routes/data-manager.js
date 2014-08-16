@@ -155,7 +155,7 @@ function submitEditInstance(req, res, next) {
 }
 
 function submitDeleteInstance(req, res, next) {
-  var id = req.params.id;
+  var id = req.params.instanceId;
 
   function render(err) {
     if (err) {
@@ -169,29 +169,18 @@ function submitDeleteInstance(req, res, next) {
   req.instance.delete(render);
 }
 
-// TODO use reification
 function submitClearInstance(req, res, next) {
-  var id = req.params.id;
+  req.instance.clear();
 
-  function render(err) {
-    if (err) {
-      return next(err);
-    }
-
-    return res.redirect('/data-manager/?success=true&deletedInstance=' +
-                        encodeURIComponent(id));
-  }
-
-  req.instance.clear(render);
+  return res.redirect('/data-manager/?success=true&clearedInstance=' +
+                      encodeURIComponent(req.params.instanceId));
 }
 
 function submitFetchInstance(req, res, next) {
-  var id = req.params.id;
-
   req.instance.fetch();
 
   return res.redirect('/data-manager/?success=true&fetchedInstance=' +
-                      encodeURIComponent(id));
+                      encodeURIComponent(req.params.instanceId));
 }
 
 function submitFetchAllInstancesOfDriver(req, res, next) {
