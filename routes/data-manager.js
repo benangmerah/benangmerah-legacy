@@ -59,13 +59,9 @@ function validateInstanceForm(req, res, next) {
   return next();
 }
 
-function bindInstance(req, res, next) {
-  var id = req.params.id;
-  if (!id) {
-    return next('not_found');
-  }
-
-  var instanceData = dataManager.getInstance(id);
+function bindInstance(req, res, next, instanceId) {
+  console.log(instanceId);
+  var instanceData = dataManager.getInstance(instanceId);
   if (!instanceData) {
     return next('not_found');
   }
@@ -220,11 +216,11 @@ router.route('/instance/create')
   .post(submitCreateInstance);
 router.post('/driver/fetch/:driverName', submitFetchAllInstancesOfDriver);
 
-router.use(bindInstance);
-router.get('/instance/view/:id', viewInstance);
-router.route('/instance/edit/:id')
+router.param('instanceId', bindInstance);
+router.get('/instance/view/:instanceId', viewInstance);
+router.route('/instance/edit/:instanceId')
   .get(editInstance)
   .post(submitEditInstance);
-router.post('/instance/delete/:id', submitDeleteInstance);
-router.post('/instance/clear/:id', submitClearInstance);
-router.post('/instance/fetch/:id', submitFetchInstance);
+router.post('/instance/delete/:instanceId', submitDeleteInstance);
+router.post('/instance/clear/:instanceId', submitClearInstance);
+router.post('/instance/fetch/:instanceId', submitFetchInstance);
