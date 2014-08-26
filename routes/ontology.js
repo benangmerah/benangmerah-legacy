@@ -8,7 +8,9 @@ var config = require('config');
 var n3util = require('n3').Util;
 var _ = require('lodash');
 var _s = require('underscore.string');
+var Promise = require('bluebird');
 
+var api = require('../lib/api');
 var shared = require('../shared');
 var context = shared.context;
 
@@ -44,327 +46,113 @@ function describeExternalResource(req, res, next) {
   next();
 }
 
-function describeProvinsi(req, res, next) {
-  res.json('Hello provinsi');
-}
-
-function describeKota(req, res, next) {
-  res.json('Hello kota');
-}
-
 function describePlace(req, res, next) {
-  var vars = {};
+  var id = req.resourceURI;
 
-  function execDescribeQuery(callback) {
-    var baseQuery = 'construct { <%s> ?p ?o } ' +
-                    'where { <%s> ?p ?o }';
-    var describeQuery =
-      util.format(baseQuery, req.resourceURI, req.resourceURI);
+  var thisPlace, parent, children, datacubes;
 
-    conn.getGraph({
-      query: describeQuery,
-      form: 'compact',
-      context: shared.context
-    }, function(err, data) {
-      if (err) {
-        return callback(err);
-      }
+  var describePromise = api.describe(id).then(function(data) {
+    res.locals.thisPlace = data;
+  });
 
-      vars.thisPlace = data;
-      return callback();
-    });
-  }
-
-  function getParent(callback) {
-    var parentQuery = util.format(
-      'construct { ?parent ?x ?y } ' +
-      'where { ' +
-      '<%s> bm:hasParent ?parent. ?parent ?x ?y }',
-      req.resourceURI
-    );
-
-    conn.getGraph({
-      query: parentQuery,
-      form: 'compact',
-      context: shared.context
-    }, function(err, data) {
-      if (err) {
-        return callback(err);
-      }
-
-      if (data['@id']) {
-        vars.parent = data;
-      }
-
-      return callback();
-    });
-  }
-
-  function getChildren(callback) {
-    var childrenQuery = util.format(
-      'construct { ?child ?p ?o } ' +
-      'where { ?child bm:hasParent <%s>. ?child ?p ?o. }',
-      req.resourceURI
-    );
-
-    conn.getGraph({
-      query: childrenQuery,
-      form: 'compact',
-      context: shared.context
-    }, function(err, data) {
-      if (err) {
-        return callback(err);
-      }
-
-      vars.children = data['@graph'];
-      return callback();
-    });
-  }
-
-  function getDatacubes(callback) {
-    // TODO union with other sameAs here
-    var condition = util.format(
-      '?observation bm:refArea <%s>',
-      vars.thisPlace['owl:sameAs']['@id']);
-
-    shared.getDatacube(condition, ['bm:refArea'], function(err, datasets) {
-      if (err) {
-        return console.log(err);
-      }
-
-      vars.qbDatasets = datasets;
-
-      callback();
-    });
-  }
-
-  function render(err) {
-    console.log('Rendering..');
-    if (err) {
-      return next(err);
+  var parentPromise = api.parent(id).then(function(data) {
+    if (data['@id']) {
+      res.locals.parent = data;
     }
+  });
 
-    res.render('ontology/place', _.extend(vars, {
-      title: shared.getPreferredLabel(vars.thisPlace)
-    }));
-  }
+  var childrenPromise = api.children(id).then(function(data) {
+    res.locals.children = data;
+  });
 
-  async.series([
-    function(callback) {
-      async.parallel([execDescribeQuery, getParent, getChildren], callback);
-    },
-    getDatacubes
-  ], render);
+  var datacubesPromise = describePromise.then(function(data) {
+    return api.datacubes({
+      'bm:refArea': { '@id': res.locals.thisPlace['owl:sameAs']['@id'] }
+    }).then(function(data) {
+      res.locals.qbDatasets = data;
+    });
+  });
+
+  Promise.all([
+    describePromise, parentPromise, childrenPromise, datacubesPromise
+  ]).then(function() {
+    res.locals.title = shared.getPreferredLabel(res.locals.thisPlace);
+    res.render('ontology/place');
+  }).catch(next);
 }
 
 function describeDataset(req, res, next) {
-  function execDescribeQuery(callback) {
-    var baseQuery = 'construct { <%s> ?p ?o } ' +
-                    'where { <%s> ?p ?o }';
-    var describeQuery =
-      util.format(baseQuery, req.resourceURI, req.resourceURI);
-
-    conn.getGraph({
-      query: describeQuery,
-      form: 'compact',
-      context: shared.context
-    }, function(err, data) {
-      callback(err, data);
-    });
-  }
-
-  function render(err, data, datasets) {
-    if (err) {
-      return next(err);
-    }
-
-    var resource = _.extend({}, data);
+  api.describe(req.resourceURI).then(function(resource) {
     delete resource['@context'];
-
-    var title = shared.getPreferredLabel(data);
-
-    res.render('ontology/dataset', {
-      title: title,
-      resource: resource,
-      datasets: datasets
-    });
-  }
-
-  async.waterfall([execDescribeQuery], render);
+    res.locals.resource = resource;
+    res.locals.title = shared.getPreferredLabel(resource);
+    res.render('ontology/dataset');
+  }).catch(next);
 }
 
 function describeThing(req, res, next) {
-  function execDescribeQuery(callback) {
-    var baseQuery = 'construct { <%s> ?p ?o } ' +
-                    'where { <%s> ?p ?o }';
-    var describeQuery =
-      util.format(baseQuery, req.resourceURI, req.resourceURI);
-
-    conn.getGraph({
-      query: describeQuery,
-      form: 'compact',
-      context: shared.context
-    }, function(err, data) {
-      callback(err, data);
-    });
-  }
-
-  function render(err, data) {
-    if (err) {
-      return next(err);
-    }
-
-    var resource = _.extend({}, data);
+  api.describe(req.resourceURI).then(function(resource) {
     delete resource['@context'];
-
-    var title = shared.getPreferredLabel(data);
-
-    res.render('ontology/thing', {
-      title: title,
-      resource: resource
-    });
-  }
-
-  async.waterfall([execDescribeQuery], render);
+    res.locals.resource = resource;
+    res.locals.title = shared.getPreferredLabel(resource);
+    res.render('ontology/thing');
+  }).catch(next);
 }
 
 function describeIndicator(req, res, next) {
   var selectedPeriod = req.query['bm:refPeriod'];
   var heatmapData = { max: 1, data: [] };
-  var maxValue = 0;
   var rankings, periods, rankingsGraph;
+  var resource;
 
-  function execPeriodsQuery(callback) {
-    var baseQuery =
-      'select distinct ?year { ' +
-      '  [] a qb:Observation;' +
-      '     <%s> [];' +
-      '     bm:refPeriod ?year.' +
-      '  }' +
-      'order by desc(?year)';
+  var describePromise = api.describe(req.resourceURI).then(function(data) {
+    resource = data;
+  });
 
-    var periodsQuery = util.format(baseQuery, req.resourceURI);
+  var periodsPromise = api.periods(req.resourceURI).then(function(data) {
+    periods = data;
+    if (!_.contains(periods, selectedPeriod)) {
+      selectedPeriod = periods[0];
+    }
+  });
 
-    conn.getCol(periodsQuery, function(err, col) {
-      if (err) {
-        return callback(err);
+  var rankingsPromise = periodsPromise.then(function() {
+    var conditions = {
+      'bm:refPeriod': {
+        '@value': selectedPeriod,
+        '@type': 'xsd:gYear'
       }
+    };
 
-      periods = _.pluck(col, 'value');
-
-      if (!selectedPeriod || !_.contains(periods, selectedPeriod)) {
-        selectedPeriod = periods[0];
-      }
-
-      callback();
+    return api.rankings({
+      '@id': req.resourceURI,
+      where: conditions
     });
-  }
+  }).then(function(data) {
+    rankings = data;
 
-  function execRankQuery(callback) {
-    var baseQuery =
-      'construct {' +
-      '  ?x bm:value ?val;' +
-      '    a qb:Observation;' +
-      '    bm:refArea ?area.' +
-      '  ?area rdfs:label ?o;' +
-      '    geo:lat ?lat;' +
-      '    geo:long ?long.' +
-      '}' +
-      'where {' +
-      '  ?x a qb:Observation;' +
-      '    bm:refPeriod "%s"^^xsd:gYear;' +
-      '    <%s> ?val;' +
-      '  bm:refArea ?areax.' +
-      '  ?area owl:sameAs ?areax.' +
-      '  ?area rdfs:label ?o;' +
-      '    geo:lat ?lat;' +
-      '    geo:long ?long.' +
-      '  filter (lang(?o) = "") ' +
-      '}' +
-      'order by desc(?val)';
-    var rankQuery = util.format(baseQuery, selectedPeriod, req.resourceURI);
-
-    conn.getGraph({
-      query: rankQuery,
-      form: 'compact',
-      context: shared.context,
-      limit: 50000
-    }, function(err, data) {
-      if (err) {
-        return callback(err);
-      }
-
-      rankingsGraph = shared.pointerizeGraph(data);
-
-      rankings = [];
-      _.forEach(rankingsGraph['@graph'], function(val) {
-        if (val['@type'] !== 'qb:Observation') {
-          return;
-        }
-
-        var idx = _.sortedIndex(rankings, val, function(v) {
-          var sortValue;
-          if (v['bm:value']['@type'] === 'xsd:decimal') {
-            sortValue = parseFloat(v['bm:value']['@value']);
-          }
-          else {
-            sortValue = shared.getLdValue(v['bm:value']);
-          }
-
-          if (sortValue > maxValue) {
-            maxValue = sortValue;
-          }
-
-          return sortValue;
-        });
-
-        generateHeatmap(val);
-
-        rankings.splice(idx, 0, val);
+    // Generate heatmap data
+    // Perhaps should be handled inside view, but handle that later
+    _.forEach(rankings, function(observation) {
+      var area = observation['bm:refArea'];
+      var lat = area['geo:lat'];
+      var lng = area['geo:long'];
+      var value = parseFloat(shared.getLdValue(observation));
+      heatmapData.data.push({
+        lat: lat, lng: lng, value: value
       });
 
-      rankings.reverse();
-
-      heatmapData.max = maxValue;
-
-      callback();
+      if (value > heatmapData.max) {
+        heatmapData.max = value;
+      }
     });
-  }
+  });
 
-  function generateHeatmap(observation) {
-    var area = observation['bm:refArea'];
-    var lat = area['geo:lat'];
-    var lng = area['geo:long'];
-    var value = parseFloat(shared.getLdValue(observation));
-    heatmapData.data.push({
-      lat: lat, lng: lng, value: value
-    });
-  }
-
-  function execDescribeQuery(callback) {
-    var baseQuery = 'construct { <%s> ?p ?o } ' +
-                    'where { <%s> ?p ?o }';
-    var describeQuery =
-      util.format(baseQuery, req.resourceURI, req.resourceURI);
-
-    conn.getGraph({
-      query: describeQuery,
-      form: 'compact',
-      context: shared.context
-    }, function(err, data) {
-      callback(err, data);
-    });
-  }
-
-  function render(err, data) {
-    if (err) {
-      return next(err);
-    }
-
-    var resource = _.extend({}, data);
+  Promise.all([describePromise, periodsPromise, rankingsPromise])
+  .then(function() {
     delete resource['@context'];
 
-    var title = shared.getPreferredLabel(data);
+    var title = shared.getPreferredLabel(resource);
 
     res.render('ontology/indicator', {
       title: title,
@@ -374,32 +162,20 @@ function describeIndicator(req, res, next) {
       selectedPeriod: selectedPeriod,
       heatmapJSON: JSON.stringify(heatmapData)
     });
-  }
-
-  async.waterfall([execPeriodsQuery, execRankQuery, execDescribeQuery], render);
+  })
+  .catch(next);
 }
 
 function sameAsFallback(req, res, next) {
-  if (!req.resourceURI) {
-    return next();
-  }
-
-  var query = util.format(
-    'select distinct ?twin ' +
-    'where { { ?twin owl:sameAs <%s> } ' +
-    'union { <%s> owl:sameAs ?twin } }', req.resourceURI);
-
-  return conn.getColValues(query, function(err, col) {
-    if (err) {
-      return next(err);
-    }
-    if (col.length === 1) {
-      return res.redirect(shared.getDescriptionPath(col[0]));
+  var sameAsPromise = api.sameAs(req.resourceURI);
+  sameAsPromise.then(function(twins) {
+    if (twins.length > 0) {
+      res.redirect(shared.getDescriptionPath(twins[0]));
     }
     else {
-      return next();
+      next();
     }
-  });
+  }).catch(next);
 }
 
 router.all('/ontology/*', derefOntology);
