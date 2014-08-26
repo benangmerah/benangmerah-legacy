@@ -185,15 +185,8 @@ function submitFetchInstance(req, res, next) {
 
 function submitFetchAllInstancesOfDriver(req, res, next) {
   var driverName = req.params.driverName;
-  async.each(dataManager.driverInstances, function(instance, callback) {
-    if (instance['bm:driverName'] === driverName) {
-      instance.fetch();
-    }
-
-    callback();
-  }, function() {
-    res.redirect('/data-manager/?success=true&fetchedDriver=' + driverName);
-  });
+  dataManager.fetchAllInstancesOfDriver(driverName);
+  res.redirect('/data-manager/?success=true&fetchedDriver=' + driverName);
 }
 
 // TODO: use authentication
