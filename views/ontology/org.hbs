@@ -1,0 +1,31 @@
+<div class="content resource">
+	{{#with resource}}
+	<article class="resource">
+		<header>
+			<h1>Organisasi</h1>
+			<h2>{{#ifCollection rdfs:label}}{{preferredLabel}}{{else}}{{[@id]}}{{/ifCollection}}</h2>
+		</header>
+
+		<div class="row">
+			<div class="col-md-4">
+				<h3>Tentang organisasi ini</h3>
+				{{#if rdfs:comment}}
+				{{#markdown}}{{trim rdfs:comment}}{{/markdown}}
+				{{/if}}
+			</div>
+			<div class="col-md-8">
+			{{#with ..}}
+			{{#ifCollection datasets}}
+				<h3>Kumpulan data yang diterbitkan</h3>
+				<ul class="dataset-list">
+				{{#each datasets}}
+					<li>{{ldObject this}}</li>
+				{{/each}}
+				</ul>
+			{{/ifCollection}}
+			{{/with}}
+			</div>
+		</div>
+	</article>
+	{{/with}}
+</div>

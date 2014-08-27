@@ -253,6 +253,19 @@ function describeIndicator(req, res, next) {
   .catch(next);
 }
 
+function describeOrg(req, res, next) {
+  api.describe(req.resourceURI).then(function(resource) {
+    delete resource['@context'];
+    res.locals.resource = resource;
+    res.locals.title = shared.getPreferredLabel(resource);
+    return api.datasetsPublishedBy(req.resourceURI).then(function(data) {
+      res.locals.datasets = data;
+    });
+  }).then(function() {
+    res.render('ontology/org');
+  }).catch(next);
+}
+
 function sameAsFallback(req, res, next) {
   var sameAsPromise = api.sameAs(req.resourceURI);
   sameAsPromise.then(function(twins) {
@@ -269,6 +282,7 @@ router.all('/ontology/*', derefOntology);
 router.all('/place/*', describeInternalResource);
 router.all('/resource/:resourceURI', describeExternalResource);
 
+router.all('*', forOntClass('org:Organization'), describeOrg);
 router.all('*', forOntClass('bm:Place'), describePlace);
 router.all('*', forOntClass('qb:DataSet'), describeDataset);
 router.all('*', forOntClass('qb:MeasureProperty'), describeIndicator);
