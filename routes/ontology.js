@@ -138,28 +138,13 @@ function describeDataset(req, res, next) {
     return promise;
   });
 
-  var otherDatasetsPromise = publisherPromise.then(function() {
+  var otherDatasetsPromise = describePromise.then(function() {
     var pubId = res.locals.resource['dct:publisher']['@id'];
-    var otherDatasets = [];
-    conn.getColValues('SELECT ?x WHERE { ?x dct:publisher <' + pubId + '> }')
-    .then(function(datasetIds) {
-      var promise = _.reduce(datasetIds, function(promise, datasetId) {
-        return promise.then(function() {
-          api.describe(datasetId).then(function(data) {
-            if (data['@id'] === req.resourceURI) {
-              return;
-            }
-
-            delete data['@context'];
-            otherDatasets.push(data);
-          });
+    return api.datasetsPublishedBy(pubId).then(function(datasets) {
+      res.locals.resource['dct:publisher'].otherDatasets =
+        _.filter(datasets, function(dataset) {
+          return dataset['@id'] !== req.resourceURI;
         });
-      }, Promise.resolve());
-
-      return promise;
-    })
-    .then(function() {
-      res.locals.resource['dct:publisher'].otherDatasets = otherDatasets;
     });
   });
 
