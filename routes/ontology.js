@@ -266,6 +266,44 @@ function describeOrg(req, res, next) {
   }).catch(next);
 }
 
+function describeSubject(req, res, next) {
+  var id = req.resourceURI;
+
+  var resource;
+  var describePromise = api.describe(id).then(function(data) {
+    resource = data;
+  });
+
+  var datasets;
+  var datasetsPromise = api.describeAll({
+    where: {
+      '@type': 'qb:DataSet',
+      'dct:subject': { '@id': id }
+    }
+  }).then(function(data) {
+    datasets = data['@graph'];
+  });
+
+  Promise.all([describePromise, datasetsPromise])
+  .then(function() {
+    res.locals.resource = resource;
+    res.locals.datasets = datasets;
+
+    var typeLabel;
+    if (shared.ldIsA(resource, 'bm:Topic')) {
+      typeLabel = 'Topik';
+    }
+    else if (shared.ldIsA(resource, 'bm:Tag')) {
+      typeLabel = 'Tagar';
+    }
+    res.locals.typeLabel = typeLabel;
+
+    res.locals.title = shared.getPreferredLabel(resource);
+
+    res.render('ontology/subject');
+  });
+}
+
 function sameAsFallback(req, res, next) {
   var sameAsPromise = api.sameAs(req.resourceURI);
   sameAsPromise.then(function(twins) {
@@ -286,5 +324,7 @@ router.all('*', forOntClass('org:Organization'), describeOrg);
 router.all('*', forOntClass('bm:Place'), describePlace);
 router.all('*', forOntClass('qb:DataSet'), describeDataset);
 router.all('*', forOntClass('qb:MeasureProperty'), describeIndicator);
+router.all('*', forOntClass('bm:Topic'), describeSubject);
+router.all('*', forOntClass('bm:Tag'), describeSubject);
 router.all('*', forOntClass('owl:Thing'), describeThing);
 router.all('*', forOntClass(), sameAsFallback);
