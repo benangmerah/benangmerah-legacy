@@ -48,11 +48,18 @@ helpers.preferredDatasetLabel = function(resource, options) {
 
   var perIndex = preferredLabel.toLowerCase().lastIndexOf(' per ');
   if (perIndex > -1) {
-    return preferredLabel.substring(0, perIndex);
+    preferredLabel = preferredLabel.substring(0, perIndex);
+  }
+
+  var containsPeriod =
+    _(resource.dimensions).pluck('@id').contains('bm:refPeriod');
+  var metaPeriod = resource['http://data.ukp.go.id/#meta-periode'];
+  if (!containsPeriod && metaPeriod) {
+    preferredLabel += ' (' + shared.getLdValue(metaPeriod) + ')';
   }
 
   return preferredLabel;
-}
+};
 
 helpers.descriptionLink = function(value, lbl, options) {
   var hash = (options && options.hash) || {};
