@@ -82,10 +82,112 @@ function describePlace(req, res, next) {
 }
 
 function describeDataset(req, res, next) {
-  api.describe(req.resourceURI).then(function(resource) {
+  var describePromise = api.describe(req.resourceURI).then(function(resource) {
     delete resource['@context'];
     res.locals.resource = resource;
     res.locals.title = shared.getPreferredLabel(resource);
+  });
+
+  var measurePromise = describePromise.then(function() {
+    var components = res.locals.resource['qb:component'];
+    console.dir(components);
+  });
+
+  var publisherPromise = describePromise.then(function() {
+    var publisher = res.locals.resource['dct:publisher'];
+    return api.describe(publisher).then(function(data) {
+      res.locals.resource['dct:publisher'] = data;
+    });
+  });
+
+  var licensePromise = describePromise.then(function() {
+    var license = res.locals.resource['dct:license'];
+    return api.describe(license).then(function(data) {
+      res.locals.resource['dct:license'] = data;
+    });
+  });
+
+  var subjectPromise = describePromise.then(function() {
+    var subject = res.locals.resource['dct:subject'];
+    if (!_.isArray(subject)) {
+      subject = [subject];
+    }
+    var subjectArray = [];
+    var topics = [];
+    var tags = [];
+    var promise = Promise.resolve();
+    _.forEach(subject, function(sub) {
+      promise = promise.then(function() {
+        return api.describe(sub).then(function(data) {
+          var subj = data;
+          if (shared.ldIsA(subj, 'bm:Topic')) {
+            topics.push(subj);
+          }
+          else if (shared.ldIsA(subj, 'bm:Tag')) {
+            tags.push(subj);
+          }
+        });
+      });
+    });
+
+    promise = promise.then(function() {
+      res.locals.topics = topics;
+      res.locals.tags = tags;
+    });
+
+    return promise;
+  });
+
+  var otherDatasetsPromise = publisherPromise.then(function() {
+    var pubId = res.locals.resource['dct:publisher']['@id'];
+    var otherDatasets = [];
+    conn.getColValues('SELECT ?x WHERE { ?x dct:publisher <' + pubId + '> }')
+    .then(function(datasetIds) {
+      var promise = _.reduce(datasetIds, function(promise, datasetId) {
+        return promise.then(function() {
+          api.describe(datasetId).then(function(data) {
+            if (data['@id'] === req.resourceURI) {
+              return;
+            }
+
+            delete data['@context'];
+            otherDatasets.push(data);
+          });
+        });
+      }, Promise.resolve());
+
+      return promise;
+    })
+    .then(function() {
+      res.locals.resource['dct:publisher'].otherDatasets = otherDatasets;
+    });
+  });
+
+  var measuresQuery =
+    'CONSTRUCT {' +
+    '  ?x ?y ?z' +
+    '} WHERE {' +
+    '  <' + req.resourceURI + '> qb:structure [ qb:component [' +
+    '    qb:measure ?x ] ].' +
+    '  ?x ?y ?z. }';
+  var measuresPromise = conn.getGraph({
+    query: measuresQuery,
+    form: 'compact',
+    context: shared.context
+  }).then(function(data) {
+    if (data['@graph']) {
+      res.locals.measures = data['@graph'];
+    }
+    else {
+      delete data['@context'];
+      res.locals.measures = [data];
+    }
+  });
+
+  Promise.all(
+    [describePromise, publisherPromise, licensePromise, subjectPromise,
+     otherDatasetsPromise, measuresPromise]
+  ).then(function() {
     res.render('ontology/dataset');
   }).catch(next);
 }

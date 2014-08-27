@@ -7,27 +7,104 @@
 		</header>
 
 		<div class="row">
-			<div class="description col-lg-8 col-md-6">
-			{{#if rdfs:comment}}
-			{{#markdown}}{{trim rdfs:comment}}{{/markdown}}
-			{{/if}}
+			<div class="col-lg-9 col-md-6">
+				<div class="row">
+					<div class="col-md-8">
+						<h3>Tentang kumpulan data ini</h3>
+						{{#if rdfs:comment}}
+						{{#markdown}}{{trim rdfs:comment}}{{/markdown}}
+						{{/if}}
+					</div>
+					<div class="col-md-4">
+						{{#with ..}}
+						{{#ifCollection measures}}
+						<h3>Indikator yang tersedia</h3>
+						<ul class="link-list">
+						{{#each measures}}
+							<li>{{ldObject this}}</li>
+						{{/each}}
+						</ul>
+						{{/ifCollection}}
+						{{/with}}
+					</div>
+				</div>
+
+				<section class="infobox">
+					<table class="table">
+						{{#with ..}}
+						{{#if topics}}
+						<tr>
+							<th>Topik</th>
+							<td>{{ldObject topics}}</td>
+						</tr>
+						{{/if}}
+						{{#if tags}}
+						<tr>
+							<th>Tagar</th>
+							<td>{{ldObject tags}}</td>
+						</tr>
+						{{/if}}
+						{{/with}}
+						{{#if [dct:modified]}}
+						<tr>
+							<th>Terakhir diperbarui</th>
+							<td>{{moment [dct:modified] format="D MMMM YYYY"}}</td>
+						</tr>
+						{{/if}}
+						{{#if [http://data.ukp.go.id/#meta-cakupan-wilayah]}}
+						<tr>
+							<th>Cakupan wilayah</th>
+							<td>{{[http://data.ukp.go.id/#meta-cakupan-wilayah]}}</td>
+						</tr>
+						{{/if}}
+						{{#if [http://data.ukp.go.id/#meta-periode]}}
+						<tr>
+							<th>Periode</th>
+							<td>{{[http://data.ukp.go.id/#meta-periode]}}</td>
+						</tr>
+						{{/if}}
+						{{#if [dct:license]}}
+						<tr>
+							<th>Lisensi</th>
+							<td>{{ldObject [dct:license]}}</td>
+						</tr>
+						{{/if}}
+						{{#if [http://data.ukp.go.id/#meta-rujukan]}}
+						<tr>
+							<th>Rujukan</th>
+							<td>{{link [http://data.ukp.go.id/#meta-rujukan]}}</td>
+						</tr>
+						{{/if}}
+						{{#if [@id]}}
+						<tr>
+							<th>Pranala sumber</th>
+							<td>{{link [@id]}}</td>
+						</tr>
+						{{/if}}
+					</table>
+				</section>
 			</div>
 
-			<div class="col-lg-4 col-md-6">
-				<table class="table">
-					{{#if [@id]}}
-					<tr>
-						<th>Pranala</th>
-						<td>{{link [@id]}}</td>
-					</tr>
-					{{/if}}
-					{{#if dct:publisher}}
-					<tr>
-						<th>Penerbit</th>
-						<td>{{ldObject dct:publisher}}</td>
-					</tr>
-					{{/if}}
-				</table>
+			<div class="col-lg-3 col-md-4">
+				<h3>Diterbitkan oleh</h3>
+				{{#if dct:publisher}}
+				<h4>{{ldObject dct:publisher}}</h4>
+				{{#with dct:publisher}}
+				{{#if rdfs:comment}}
+				{{#markdown}}{{trim rdfs:comment}}{{/markdown}}
+				{{/if}}
+				{{#ifCollection otherDatasets}}
+				<h3>Kumpulan data lainnya</h3>
+				<ul class="link-list">
+				{{#each otherDatasets}}
+					<li>{{ldObject this}}</li>
+				{{/each}}
+				</ul>
+				{{/ifCollection}}
+				{{/with}}
+				{{else}}
+				<p>Tidak ada informasi mengenai penerbit kumpulan data ini.</p>
+				{{/if}}
 			</div>
 		</div>
 		<div>
