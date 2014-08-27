@@ -30,47 +30,10 @@
 		</section>
 		<div class="row">
 			<div class="col-md-9">
-
-				{{#ifCollection datasets}}
-				<section class="infobox-collection">
-					<header>
-						<h3>Rincian Indikator Pembangunan</h3>
-					</header>
-					{{#each datasets}}
-					<section class="infobox">
-						<h4>{{label}}</h4>
-						<table class="table table-striped table-bordered">
-							<thead>
-								<tr>
-									<th></th>
-									{{#each periods}}
-									<th>{{this}}</th>
-									{{/each}}
-								</tr>
-							<thead>
-							<tbody>
-							{{#each data}}
-								<tr>
-									<th>{{@key}}</th>
-									{{#periodValues ../periods}}
-									<td>{{@value}}</td>
-									{{/periodValues}}
-								</tr>
-							{{/each}}
-							</tbody>
-						</table>
-						<footer>
-							<address class="source">Sumber: {{descriptionLink @key}}</address>
-						</footer>
-					</section>
-					{{/each}}
-				</section>
-				{{/ifCollection}}
-
 				{{#ifCollection qbDatasets}}
 				<section class="infobox-collection">
 					<header>
-						<h3>Rincian Indikator Pembangunan</h3>
+						<h3>Kumpulan Data Indikator Pembangunan</h3>
 					</header>
 					{{#each qbDatasets}}
 					<section class="infobox" data-dataset-id="{{[@id]}}">
@@ -97,9 +60,31 @@
 				{{else}}
 				<section class="infobox-collection">
 					<header>
-						<h3>Rincian Indikator Pembangunan</h3>
+						<h3>Kumpulan Data Indikator Pembangunan</h3>
 					</header>
 					<p>Belum ada data indikator pembangunan untuk daerah ini.</p>
+				</section>
+				{{/ifCollection}}
+
+				{{#ifCollection iatiActivities}}
+				<section class="infobox-collection">
+					<h3>Kegiatan-Kegiatan yang Didanai Bantuan Internasional</h3>
+					<table class="table table-bordered">
+						<thead>
+							<tr>
+								<th>Judul Kegiatan</th>
+								<th>Organisasi Pelapor</th>
+							</tr>
+						</thead>
+						<tbody>
+						{{#each iatiActivities}}
+							<tr>
+								<td>{{ldObject this}}</td>
+								<td>{{ldObject [iati:activity-reporting-org]}}</td>
+							</tr>
+						{{/each}}
+						</tbody>
+					</table>
 				</section>
 				{{/ifCollection}}
 

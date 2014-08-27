@@ -73,8 +73,13 @@ function describePlace(req, res, next) {
     });
   });
 
+  var iatiPromise = api.iatiActivities(id).then(function(data) {
+    res.locals.iatiActivities = data['@graph'];
+  });
+
   Promise.all([
-    describePromise, parentPromise, childrenPromise, datacubesPromise
+    describePromise, parentPromise, childrenPromise,
+    datacubesPromise, iatiPromise
   ]).then(function() {
     res.locals.title = shared.getPreferredLabel(res.locals.thisPlace);
     res.render('ontology/place');
