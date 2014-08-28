@@ -197,18 +197,29 @@ helpers.leaderboard = function(context, rankKey, options) {
   return ret;
 };
 
-var deferredBlocks = [];
+var maybeDeferred = '';
+var deferredBlocks = '';
 
-helpers.defer = function(options) {
-  var deferredBlock = options.fn(this);
-  deferredBlocks.push(deferredBlock);
+helpers.maybeDefer = function(options) {
+  maybeDeferred += options.fn(this);
   return '';
 };
 
-helpers.flush = function() {
-  var output = deferredBlocks.join('');
+helpers.defer = function(options) {
+  var deferredBlock = options.fn(this);
+  deferredBlocks += '\n' + deferredBlock;
+  return '';
+};
 
-  deferredBlocks.length = 0;
+helpers.flush = function(options) {
+  var output = deferredBlocks;
+
+  if (options && options.fn && output) {
+    output = options.fn(this) + '\n' + output;
+  }
+
+  deferredBlocks = '';
+  maybeDeferred = '';
 
   return new Handlebars.SafeString(output);
 };
