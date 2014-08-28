@@ -1,0 +1,61 @@
+<div class="content resource">
+	<article class="resource">
+		{{#with resource}}
+		<header>
+			<h1>Organisasi</h1>
+			<h2>{{preferredLabel}}</h2>
+		</header>
+		{{/with}}
+
+		<div class="row">
+			<div class="col-md-6">
+				<h3>Kegiatan yang dilaporkan organisasi ini ({{reportedActivities.length}})</h3>
+				<table class="table info-table">
+					<thead>
+						<tr>
+							<th>Nama kegiatan</th>
+						</tr>
+					</thead>
+					<tbody>
+					{{#each reportedActivities}}
+						<tr>
+							<td>{{ldObject this}}</td>
+						</tr>
+					{{/each}}
+					</tbody>
+				</table>
+			</div>
+			<div class="col-md-6">
+				<h3>Kegiatan yang melibatkan organisasi ini ({{participatedActivities.length}})</h3>
+				<table class="table info-table">
+					<thead>
+						<tr>
+							<th>Nama kegiatan</th>
+							<th>Peran</th>
+						</tr>
+					</thead>
+					<tbody>
+					{{#each participatedActivities}}
+						<tr>
+							<td>{{ldObject this}}</td>
+							<td>{{ldObject iati:organisation-role}}</td>
+						</tr>
+					{{/each}}
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+		<div class="infobox">
+			<h3>Rincian</h3>
+			<table class="table info-table">
+				{{#each resource}}
+				<tr>
+					<th>{{@key}}<th>
+					<td>{{ldObject this}}</td>
+				</tr>
+				{{/each}}
+			</table>
+		</div>
+	</article>
+</div>

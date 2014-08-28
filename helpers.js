@@ -14,6 +14,9 @@ require('helper-moment').register(Handlebars, {});
 var helpers = module.exports;
 
 helpers.ldValue = function(value) {
+  if (!value) {
+    return '';
+  }
   var theValue = shared.getLdValue(value);
   if (value['@type'] === 'xsd:decimal') {
     var dot = theValue.indexOf('.');
@@ -95,6 +98,9 @@ helpers.descriptionLink = function(value, lbl, options) {
 };
 
 helpers.ldObject = function(ldObj) {
+  if (!ldObj) {
+    return '';
+  }
   if (ldObj instanceof Array) {
     ldObj = ldObj.map(helpers.ldObject);
     return new Handlebars.SafeString(ldObj.join(', '));
@@ -117,7 +123,7 @@ helpers.extendedLabel = function(ldObj, helpText) {
              '</span>';
 
   return new Handlebars.SafeString(html);
-}
+};
 
 helpers.rawLdObject = function(ldObj) {
   if (ldObj instanceof Array) {
@@ -242,6 +248,30 @@ helpers.ifCollection = function(collection, options) {
     return options.inverse(this);
   }
 };
+
+helpers.withc = function(collection, options) {
+  if (!_.isEmpty(collection)) {
+    return options.fn(collection);
+  }
+  else {
+    return options.inverse(this);
+  }
+};
+
+helpers.eachc = function(collection, options) {
+  if (!_.isEmpty(collection)) {
+    if (!_.isArray(collection)) {
+      collection = [collection];
+    }
+
+    return _.map(collection, options.fn).join('');
+  }
+  else {
+    return options.inverse(this);
+  }
+}
+
+helpers.ifc = helpers.ifCollection;
 
 helpers.link = function(text, options) {
   var hash = (options && options.hash) || {};

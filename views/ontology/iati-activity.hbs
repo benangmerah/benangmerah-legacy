@@ -1,0 +1,178 @@
+<div class="content resource">
+	{{#with activity}}
+	<article class="resource">
+		<header>
+			<h1>Tentang kegiatan</h1>
+			<h2>{{preferredLabel}}</h2>
+		</header>
+
+ 		<div>
+			<h3>Tentang kegiatan ini</h3>
+			<div class="row">
+				<div class="col-md-4">
+					{{#withc iati:activity-description}}
+					{{#withc iati:activity-description-text}}
+					{{#markdown}}{{trim this}}{{/markdown}}
+					{{else}}
+					<p>Tidak ada deskripsi mengenai kegiatan ini.</p>
+					{{/withc}}
+					{{/withc}}
+
+					<table class="table info-table">
+						{{#withc iati:activity-website}}
+						<tr>
+							<th>Situs web</th>
+							<td>{{link this.[@id]}}</td>
+						</tr>
+						{{/withc}}
+						{{#withc iati:activity-contact-info}}
+						{{#withc iati:contact-info-email}}
+						<tr>
+							<th>Kontak</th>
+							<td><a href="mailto:{{ldValue this}}">{{ldValue this}}</a></td>
+						</tr>
+						{{/withc}}
+						{{/withc}}
+					</table>
+				</div>
+				<div class="col-md-4">
+					<table class="table info-table">
+						{{#withc iati:activity-id}}
+						<tr>
+							<th>ID IATI</th>
+							<td>{{ldObject this}}</td>
+						</tr>
+						{{/withc}}
+						{{#withc iati:activity-reporting-org}}
+						<tr>
+							<th>Organisasi pelapor</th>
+							<td>{{ldObject this}}</td>
+						</tr>
+						{{/withc}}
+						{{#withc iati:activity-participating-org}}
+						<tr>
+							<th>Organisasi yang berpartisipasi</th>
+							<td>
+								<ul class="link-list">
+								{{#eachc this}}
+									<li>{{ldObject this}} ({{ldObject iati:organisation-role}})</li>
+								{{/eachc}}
+								</ul>
+							</td>
+						</tr>
+						{{/withc}}
+						{{#withc iati:activity-location}}
+						<tr>
+							<th>Lokasi kegiatan</th>
+							<td>{{ldObject this}}</td>
+						</tr>
+						{{/withc}}
+					</table>
+				</div>
+				<div class="col-md-4">
+					<table class="table info-table">
+						{{#withc iati:activity-policy-marker}}
+						<tr>
+							<th>Sektor kebijakan</th>
+							<td>{{ldObject this}}</td>
+						</tr>
+						{{/withc}}
+						{{#withc iati:activity-sector}}
+						<tr>
+							<th>Sektor kegiatan</th>
+							<td>
+								<ul class="link-list">
+								{{#eachc this}}
+									<li>{{ldObject this}}</li>
+								{{/eachc}}
+								</ul>
+							</td>
+						</tr>
+						{{/withc}}
+						{{#withc iati:related-activity}}
+						<tr>
+							<th>Kegiatan terkait</th>
+							<td>
+								<ul class="link-list">
+								{{#eachc this}}
+									<li>{{ldObject [iati:activity]}}</li>
+								{{/eachc}}
+								</ul>
+							</td>
+						</tr>
+						{{/withc}}
+					</table>
+				</div>
+			</div>
+ 		</div>
+		{{#withc iati:activity-budget}}
+		<div class="infobox">
+			<h3>Anggaran</h3>
+			<table class="table table-bordered">
+				<thead>
+					<tr>
+						<th>Jumlah</th>
+						<th>Tanggal awal</th>
+						<th>Tanggal akhir</th>
+						<th>Tanggal nilai</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{#eachc this}}
+					<tr>
+						<td>{{preferredLabel iati:value-currency}}&nbsp;{{ldValue iati:value}}</td>
+						<td>{{ldValue iati:start-date}}</td>
+						<td>{{ldValue iati:end-date}}</td>
+						<td>{{ldValue iati:value-date}}</td>
+					</tr>
+					{{/eachc}}
+				</tbody>
+			</table>
+		</div>
+		{{/withc}}
+		{{#withc iati:activity-transaction}}
+		<div class="infobox">
+		<h3>Transaksi</h3>
+		<table class="table table-bordered">
+			<thead>
+				<tr>
+					<th>Jumlah</th>
+					<th>Tanggal</th>
+					<th>Tanggal nilai</th>
+					<th>Organisasi Penyedia</th>
+					<th>Organisasi Penerima</th>
+					<th>Jenis Transaksi</th>
+					<th>Kanal Pencairan</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{#eachc this}}
+				<tr>
+					<td>{{preferredLabel iati:value-currency}}&nbsp;{{ldValue iati:value}}</td>
+					<td>{{ldObject iati:transaction-date}}</td>
+					<td>{{ldObject iati:value-date}}</td>
+					<td>{{ldObject iati:provider-org-name}}</td>
+					<td>{{ldObject iati:receiver-org-name}}</td>
+					<td>{{ldObject iati:transaction-type}}</td>
+					<td>{{ldObject iati:disbursement-channel}}</td>
+				</tr>
+				{{/eachc}}
+			</tbody>
+		</table>
+		</div>
+		{{/withc}}
+
+		<div class="infobox">
+			<h3>Rincian teknis IATI</h3>
+			<table class="table info-table">
+				{{#each this}}
+				<tr>
+					<th>{{@key}}</th>
+					<td>{{ldObject this}}</td>
+				</tr>
+				{{/each}}
+			</table>
+		</div>
+	</article>
+	{{/with}}
+</div>

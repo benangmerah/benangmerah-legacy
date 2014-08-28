@@ -5,6 +5,7 @@ var async = require('async');
 var conn = require('starmutt');
 var cache = require('memory-cache');
 var config = require('config');
+var jsonld = require('jsonld');
 var n3util = require('n3').Util;
 var _ = require('lodash');
 var _s = require('underscore.string');
@@ -122,7 +123,6 @@ function describeDataset(req, res, next) {
 
   var measurePromise = describePromise.then(function() {
     var components = res.locals.resource['qb:component'];
-    console.dir(components);
   });
 
   var publisherPromise = describePromise.then(function() {
@@ -333,7 +333,104 @@ function describeSubject(req, res, next) {
     res.locals.title = shared.getPreferredLabel(resource);
 
     res.render('ontology/subject');
+  }).catch(next);
+}
+
+function describeIatiActivity(req, res, next) {
+  var activity;
+  var describePromise = api.describeExtended(req.resourceURI, 3)
+  .then(function(data) {
+    delete data['@context'];
+    activity = data;
   });
+
+  Promise.all([
+    describePromise
+  ]).then(function() {
+    res.locals.activity = activity;
+    res.locals.title = shared.getPreferredLabel(activity);
+    res.render('ontology/iati-activity');
+  }).catch(next);
+}
+
+function describeIatiOrg(req, res, next) {
+  var resource;
+  var describePromise = api.describeExtended(req.resourceURI, 3)
+  .then(function(data) {
+    delete data['@context'];
+    resource = data;
+  });
+
+  var reportedActivities = [];
+  var participatedActivities = [];
+
+  var activitiesPromise = describePromise.then(function() {
+    var orgCode = resource['iati:organisation-code']['@id'];
+    orgCode = shared.expandPrefixes(orgCode);
+
+    var reportedPromise = api.describeAll({
+      where:
+        '?s a iati:activity. ?s iati:activity-reporting-org [' +
+        'iati:organisation-code <' + orgCode + '> ].'
+    }).then(function(data) {
+      reportedActivities = data['@graph'];
+    });
+
+    var participatedPromise = conn.getGraph({
+      query:
+        'CONSTRUCT { ?s ?p ?o; iati:organisation-role ?role } WHERE {' +
+        '?s a iati:activity; ?p ?o; iati:activity-participating-org [' +
+        'iati:organisation-code <' + orgCode + '>; ' +
+        'iati:organisation-role ?role ]. }',
+      form: 'compact',
+      context: shared.context
+    }).then(function(data) {
+      participatedActivities = data['@graph'] || data;
+    });
+
+    return Promise.all([reportedPromise, participatedPromise]);
+  });
+
+  Promise.all([
+    describePromise, activitiesPromise
+  ]).then(function() {
+    res.locals.resource = resource;
+    res.locals.title = shared.getPreferredLabel(resource);
+    res.locals.reportedActivities = reportedActivities;
+    res.locals.participatedActivities = participatedActivities;
+    res.render('ontology/iati-organisation');
+  }).catch(next);
+}
+
+function redirectIatiLocation(req, res, next) {
+  var resource;
+  var describePromise = api.describe(req.resourceURI).then(function(data) {
+    delete data['@context'];
+    resource = data;
+  });
+
+  var equiv;
+  var seeAlsoPromise = describePromise.then(function() {
+    var lat = resource['iati:latitude'];
+    var lon = resource['iati:longitude'];
+    var query =
+      'SELECT ?x WHERE { ?x rdfs:seeAlso [ ' +
+      'geo:lat "' + lat + '"; geo:long "' + lon + '"] }';
+
+    return conn.getColValues(query).then(function(col) {
+      equiv = col[0] || '';
+    });
+  });
+
+  Promise.all([describePromise, seeAlsoPromise])
+  .then(function() {
+    if (equiv) {
+      res.redirect(shared.getDescriptionPath(equiv));
+    }
+    else {
+      next();
+    }
+  }).catch(next);
 }
 
 function sameAsFallback(req, res, next) {
@@ -358,5 +455,8 @@ router.all('*', forOntClass('qb:DataSet'), describeDataset);
 router.all('*', forOntClass('qb:MeasureProperty'), describeIndicator);
 router.all('*', forOntClass('bm:Topic'), describeSubject);
 router.all('*', forOntClass('bm:Tag'), describeSubject);
+router.all('*', forOntClass('iati:activity'), describeIatiActivity);
+router.all('*', forOntClass('iati:organisation'), describeIatiOrg);
+router.all('*', forOntClass('iati:location'), redirectIatiLocation);
 router.all('*', forOntClass('owl:Thing'), describeThing);
 router.all('*', forOntClass(), sameAsFallback);
