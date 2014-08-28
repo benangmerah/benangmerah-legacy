@@ -110,13 +110,13 @@ if ('development' === app.get('env')) {
   app.use(errorHandler({ dumpExceptions: true, showStack: true }));
   if (config.redis) {
     var onHit = function(key) {
-      console.log('Cache HIT  ' + key);
+      process.stderr.write('Cache HIT  ' + key + '\n');
     };
     var onMiss = function(key) {
-      console.log('Cache MISS ' + key);
+      process.stderr.write('Cache MISS ' + key + '\n');
     };
     var onPut = function(key) {
-      console.log('Cache PUT  ' + key);
+      process.stderr.write('Cache PUT  ' + key + '\n');
     };
     conn.cacheEvents.on('hit', onHit);
     conn.cacheEvents.on('miss', onMiss);

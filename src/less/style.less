@@ -613,3 +613,27 @@ ul.dataset-list {
 
   .content-columns(2);
 }
+
+.filterbox {
+  padding: 15px;
+  background: #f6f6f6;
+
+  h5 {
+    margin-top: 0;
+    font-size: 1.1 * @font-size-base;
+  }
+
+  #dataset-toc {
+    .content-columns(2);
+
+    li {
+      page-break-inside: avoid;
+      break-inside: avoid;
+      -webkit-column-break-inside:avoid;
+      -moz-column-break-inside:avoid;
+      -o-column-break-inside:avoid;
+      -ms-column-break-inside:avoid;
+      column-break-inside:avoid;
+    }
+  }
+}

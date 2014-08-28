@@ -31,12 +31,12 @@
 		<div class="row">
 			<div class="col-md-9">
 				{{#ifCollection qbDatasets}}
-				<section class="infobox-collection">
+				<section class="infobox-collection" id="datasets">
 					<header>
 						<h3>Kumpulan Data Indikator Pembangunan</h3>
 					</header>
 					{{#each qbDatasets}}
-					<section class="infobox" data-dataset-id="{{[@id]}}">
+					<section class="infobox" data-dataset-id="{{[@id]}}" id="{{htmlId}}">
 						<header>
 							<h4>{{preferredDatasetLabel}}</h4>
 							{{!-- {{#if chartable}}
@@ -52,7 +52,10 @@
 							{{datacubeTable class="table table-striped table-bordered"}}
 						</div>
 						<footer>
-							<address class="source">Sumber: {{descriptionLink [@id]}}</address>
+							<address class="source">
+								Sumber:
+								{{#ifCollection [dct:publisher]}}{{ldObject [dct:publisher]}} &ndash;{{/ifCollection}}
+								<em>{{ldObject this}}</em></address>
 						</footer>
 					</section>
 					{{/each}}
@@ -67,7 +70,7 @@
 				{{/ifCollection}}
 
 				{{#ifCollection iatiActivities}}
-				<section class="infobox-collection">
+				<section class="infobox-collection" id="iati-activities">
 					<h3>Kegiatan-Kegiatan yang Didanai Bantuan Internasional</h3>
 					<table class="table table-bordered">
 						<thead>
@@ -89,13 +92,25 @@
 				{{/ifCollection}}
 
 				{{#if thisPlace.geo:lat}}
-				<section class="infobox-collection on-map">
+				<section class="infobox-collection on-map" id="map">
 					<h3>Letak Geografis</h3>
 					{{>map thisPlace}}
 				</section>
 				{{/if}}
 			</div>
 			<nav class="col-md-3">
+				<h3>Daftar isi</h3>
+				<nav>
+					<ul>
+						<li><a href="#datasets">Kumpulan Data Indikator Pembangunan</a></li>
+						{{#ifCollection iatiActivities}}
+						<li><a href="#iati-activities">Kegiatan-Kegiatan yang Didanai Bantuan Internasional</a></li>
+						{{/ifCollection}}
+						{{#if thisPlace.geo:lat}}
+						<li><a href="#map">Letak Geografis</a></li>
+						{{/if}}
+					</ul>
+				</nav>
 				<h3>Telusur</h3>
 				<div class="parent-link">
 					<i class="glyphicon glyphicon-arrow-up"></i>
@@ -125,25 +140,14 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js"></script>
 <script src="/js/jquery.tipsy.js"></script>
 <script src="/js/charts.js"></script>
+<script src="/js/place.js"></script>
 <script>
-$(function() {
-	$('[data-dataset-id]').each(function() {
-		var el = $(this);
-		var datasetId = el.attr('data-dataset-id');
-		var dataset = datasets[datasetId];
-		if (dataset.dimensions.length === 1) {
-			var header = $('header', el);
-			var container = $('<div>').addClass('chart-container');
-			container.insertAfter(header);
-			var chart = new bm.Chart(container, dataset);
-			chart.draw();
-		}
-	});
-});
-
 var datasets = {};
 {{#each qbDatasets}}
-datasets['{{[@id]}}'] = {{{datasetJson this}}}
+datasets['{{[@id]}}'] = {{{datasetJson this}}};
 {{/each}}
+
+var topics = {{{topicsJSON}}};
+var datasetTitles = {{{datasetTitlesJSON}}};
 </script>
 {{/defer}}

@@ -50,6 +50,7 @@ function describePlace(req, res, next) {
   var id = req.resourceURI;
 
   var thisPlace, parent, children, datacubes;
+  var topics = [];
 
   var describePromise = api.describe(id).then(function(data) {
     res.locals.thisPlace = data;
@@ -70,6 +71,32 @@ function describePlace(req, res, next) {
       'bm:refArea': { '@id': res.locals.thisPlace['owl:sameAs']['@id'] }
     }).then(function(data) {
       res.locals.qbDatasets = data;
+
+      var datasetTitlesByHtmlId = {};
+      _.forEach(data, function(dataset) {
+        var htmlId = _s.slugify(dataset['@id'].substring(7));
+        dataset.htmlId = htmlId;
+        datasetTitlesByHtmlId[htmlId] =
+          shared.getPreferredDatasetLabel(dataset);
+
+        topics = _.union(topics, _.filter(dataset['dct:subject'],
+          function(sub) {
+            if (shared.ldIsA(sub, 'bm:Topic')) {
+              if (!sub.datasets) {
+                sub.datasets = [];
+              }
+              sub.datasets.push(dataset.htmlId);
+              return true;
+            }
+          }));
+      });
+
+      res.locals.topicsJSON = {};
+      _.forEach(topics, function(topic) {
+        res.locals.topicsJSON[topic['@id']] = topic;
+      });
+      res.locals.topicsJSON = JSON.stringify(res.locals.topicsJSON);
+      res.locals.datasetTitlesJSON = JSON.stringify(datasetTitlesByHtmlId);
     });
   });
 
