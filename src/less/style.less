@@ -543,7 +543,7 @@ body > .content {
           }
         }
       }
-      .line, {
+      .line {
         stroke: #000000;
       }
       .line.m0, .m0 .line {
@@ -579,7 +579,6 @@ body > .content {
     }
     &.bar-chart {
       g.bar {
-        fill: darken(@bright-red, 20%);
         text {
           fill: white;
           font-weight: bold;
@@ -589,7 +588,7 @@ body > .content {
         }
 
         &:hover {
-          fill: @bright-red;
+          opacity: 1;
         }
       }
       .x.axis .tick line {
@@ -598,6 +597,35 @@ body > .content {
       .x.axis text {
         fill: @gray-darker;
         font-size: @font-size-small;
+      }
+
+      .bar-fill(@color) {
+        fill: @color;
+        &:hover {
+          fill: darken(@color, 30%);
+        }
+      }
+
+      .bar {
+        .bar-fill(@gray-dark);
+      }
+      .bar.m0, .m0 .bar {
+        .bar-fill(@bright-red);
+      }
+      .bar.m1, .m1 .bar {
+        .bar-fill(#0073e6);
+      }
+      .bar.m2, .m2 .bar {
+        .bar-fill(#ff8000);
+      }
+      .bar.m3, .m3 .bar {
+        .bar-fill(#00f);
+      }
+      .bar.m4, .m4 .bar {
+        .bar-fill(#ff0080);
+      }
+      .bar.m5, .m5 .line {
+        .bar-fill(#0f0);
       }
     }
   }

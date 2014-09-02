@@ -1,3 +1,5 @@
+/* global $, _, d3, window */
+
 var bm = {};
 
 bm.RDF_NS = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
@@ -20,8 +22,10 @@ bm.d3locale = d3.locale({
   periods: ['AM', 'PM'],
   days: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
   shortDays: ['Mgg', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
-  months: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-  shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des']
+  months: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+  shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des']
 });
 
 bm.getLdValue = function(ldObj) {
@@ -88,8 +92,8 @@ bm.getPreferredLabel = function(jsonLdResource) {
   return preferredLabel;
 };
 
-bm.Chart = function Chart(chartContainerElement, dataset, dimensionId, measureId) {
-  this.containerElement = $(chartContainerElement);
+bm.Chart = function Chart(containerElmt, dataset, dimensionId, measureId) {
+  this.containerElement = $(containerElmt);
   this.dataset = dataset;
   this.dimensionId = dimensionId;
   this.measureId = measureId;
@@ -97,7 +101,7 @@ bm.Chart = function Chart(chartContainerElement, dataset, dimensionId, measureId
   this.determineChartType();
 
   bm.Chart.instances.push(this);
-}
+};
 
 bm.Chart.instances = [];
 
@@ -110,7 +114,7 @@ bm.Chart.prototype.determineChartType = function() {
       this.chartType = 'BarChart';
     }
   }
-}
+};
 
 bm.Chart.prototype.draw = function() {
   if (!this['draw' + this.chartType]) {
@@ -154,6 +158,14 @@ bm.Chart.prototype.margins = {
     width: 90, left: 30, top: 10
   }
 };
+
+bm.Chart.prototype.makeTooltip = function(d) {
+  var formatNumber = bm.d3locale.numberFormat(',');
+  return '<strong>' + d.measureLabel +
+    '</strong><br>' + formatNumber(d.value);
+};
+
+bm.Chart.prototype.numberFormat = bm.d3locale.numberFormat(',');
 
 bm.Chart.prototype.drawLineChart = function() {
   var self = this;
@@ -250,13 +262,13 @@ bm.Chart.prototype.drawLineChart = function() {
 
   self.getX = function(d) {
     return self.xScale(d.dimensionValue);
-  }
+  };
   self.getY = function(d) {
     return self.yScale(d.value);
-  }
+  };
   self.getBarHeight = function(d) {
     return chartHeight - self.getY(d);
-  }
+  };
 
   self.line = d3.svg.line().x(self.getX).y(self.getY);
 
@@ -287,11 +299,6 @@ bm.Chart.prototype.drawLineChart = function() {
     .attr('class', 'y axis')
     .call(self.yAxis);
 
-  // Tooltips
-  self.makeTooltip = function(d) {
-    return '<strong>' + d.measureLabel + '</strong><br>' + formatNumber(d.value);
-  }
-
   // Legend
   self.wrapText = function(text, width) {
     text.each(function() {
@@ -301,31 +308,38 @@ bm.Chart.prototype.drawLineChart = function() {
           line = [],
           lineNumber = 0,
           lineHeight = 1.1, // ems
-          y = text.attr("y"),
-          dy = parseFloat(text.attr("dy")),
-          tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
-      while (word = words.pop()) {
+          y = text.attr('y'),
+          dy = parseFloat(text.attr('dy')),
+          tspan = text.text(null).append('tspan')
+            .attr('x', 0).attr('y', y).attr('dy', dy + 'em');
+
+      word = words.pop();
+      while (word) {
         line.push(word);
-        tspan.text(line.join(" "));
+        tspan.text(line.join(' '));
         if (tspan.node().getComputedTextLength() > width) {
           line.pop();
-          tspan.text(line.join(" "));
+          tspan.text(line.join(' '));
           line = [word];
-          tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+          tspan = text.append('tspan').attr('x', 0).attr('y', y).attr('dy', ++lineNumber * lineHeight + dy + 'em').text(word);
         }
+        word = words.pop();
       }
     });
-  }
+  };
 
   self.legendPosition = function(selection) {
     var legendX = self.chartWidth + margins.legend.left;
     self.legendY = margins.legend.top;
     selection.each(function(d) {
       var legend = d3.select(this);
-      legend.attr('transform', 'translate(' + legendX + ',' + self.legendY + ')');
-      self.legendY += Math.ceil(legend.node().getBoundingClientRect().height + margins.legend.top);
+      legend.attr('transform',
+        'translate(' + legendX + ',' + self.legendY + ')');
+      self.legendY +=
+        Math.ceil(legend.node().getBoundingClientRect().height +
+          margins.legend.top);
     });
-  }
+  };
 
   var n = 0;
   _.forEach(measureValues, function(values) {
@@ -334,10 +348,12 @@ bm.Chart.prototype.drawLineChart = function() {
     line.on('mouseover', function() {
       var parent = this.parentNode;
       $(this).detach().appendTo(parent);
-      d3.select(this.parentNode).selectAll('.measure').attr('class', 'measure away');
+      d3.select(this.parentNode).selectAll('.measure')
+        .attr('class', 'measure away');
       d3.select(this).attr('class', 'measure hover');
     }).on('mouseout', function() {
-      d3.select(this.parentNode).selectAll('.measure').attr('class', 'measure');
+      d3.select(this.parentNode).selectAll('.measure')
+        .attr('class', 'measure');
       d3.select(this).attr('class', 'measure');
     });
 
@@ -376,7 +392,7 @@ bm.Chart.prototype.drawLineChart = function() {
   });
 
   chart.selectAll('.legend').call(self.legendPosition);
-}
+};
 
 bm.Chart.prototype.resizeLineChart = function() {
   var self = this;
@@ -416,7 +432,7 @@ bm.Chart.prototype.resizeLineChart = function() {
   chart.selectAll('.line').attr('d', self.line);
   chart.selectAll('circle').attr('cx', self.getX).attr('cy', self.getY);
   chart.selectAll('.legend').call(self.legendPosition);
-}
+};
 
 bm.Chart.prototype.drawBarChart = function() {
   var self = this;
@@ -459,6 +475,7 @@ bm.Chart.prototype.drawBarChart = function() {
       var value = bm.getLdValue(observation[measureId]);
 
       measureValues[measureId].push({
+        measureLabel: bm.getPreferredLabel(measure),
         dimensionValue: dimensionValue,
         value: value
       });
@@ -492,13 +509,13 @@ bm.Chart.prototype.drawBarChart = function() {
 
   self.getX = function(d) {
     return self.xScale(d.dimensionValue);
-  }
+  };
   self.getY = function(d) {
     return self.yScale(d.value);
-  }
+  };
   self.getBarHeight = function(d) {
     return chartHeight - self.getY(d);
-  }
+  };
 
   // Setup axes & gridlines
   self.xAxis = d3.svg.axis()
@@ -520,39 +537,54 @@ bm.Chart.prototype.drawBarChart = function() {
     .attr('class', 'y axis')
     .call(self.yAxis);
 
-  _.forEach(measureValues, function(values) {
-    var bar = chart.selectAll('g.bar')
+  var measureCount = measures.length;
+  var colWidth = self.xScale.rangeBand() / measureCount;
+  var measureIds = _.keys(measureValues);
+
+  // Draw the bars
+  _.forEach(_.values(measureValues), function(values, n) {
+    var bar = chart.selectAll('g.bar.m' + n)
       .data(values).enter()
-      .append('g').attr('class', 'bar')
+      .append('g').attr('class', 'bar m' + n)
       .attr('transform', function(d) {
-        return 'translate(' + self.getX(d) + ',' + self.getY(d) + ')';
+        var x = self.getX(d) + (n * colWidth);
+        return 'translate(' + x + ',' + self.getY(d) + ')';
       })
-      .attr('width', self.xScale.rangeBand())
+      .attr('width', colWidth)
       .attr('height', self.getBarHeight);
 
     var rect = bar.append('rect')
-      .attr('width', self.xScale.rangeBand())
+      .attr('width', colWidth)
       .attr('height', self.getBarHeight);
 
-    bar.append('text')
-      .attr('x', self.xScale.rangeBand() / 2)
-      .attr('y', 0)
-      .attr('text-anchor', 'middle')
-      .attr('dy', function(d) {
-        var text = d3.select(this);
-        if (parseInt(text.style('font-size')) * 3 > self.getBarHeight(d)) {
-          text.attr('class', 'outside');
-          return '-0.75em';
-        }
-        else {
-          text.attr('class', 'inside');
-          return '2em';
-        }
-      })
-      .text(function(d) {
-        return formatNumber(d.value);
-      });
-  })
+    if (measureCount > 1) {
+      rect.attr('title', self.makeTooltip)
+        .each(function() {
+          $(this).tipsy({ opacity: 1, html: true, gravity: 's' });
+        });
+    }
+
+    if (colWidth > 40) {
+      bar.append('text')
+        .attr('x', colWidth / 2)
+        .attr('y', 0)
+        .attr('text-anchor', 'middle')
+        .attr('dy', function(d) {
+          var text = d3.select(this);
+          if (parseInt(text.style('font-size')) * 3 > self.getBarHeight(d)) {
+            text.attr('class', 'outside');
+            return '-0.75em';
+          }
+          else {
+            text.attr('class', 'inside');
+            return '2em';
+          }
+        })
+        .text(function(d) {
+          return formatNumber(d.value);
+        });
+    }
+  });
 };
 
 bm.Chart.prototype.resizeBarChart = function() {
@@ -584,4 +616,4 @@ bm.Chart.prototype.resizeBarChart = function() {
 
   chart.selectAll('g.bar text')
     .attr('x', self.xScale.rangeBand() / 2);
-}
+};
