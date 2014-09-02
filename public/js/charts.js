@@ -193,6 +193,9 @@ bm.Chart.prototype.drawLineChart = function() {
     measures.forEach(function(measure) {
       var measureId = measure['@id'];
       var dimensionValue = bm.getLdValue(observation[dimensionId]);
+      if (!observation[measureId]) {
+        return;
+      }
       var value = bm.getLdValue(observation[measureId]);
 
       measureValues[measureId].push({

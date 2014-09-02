@@ -10,6 +10,7 @@
 // Import bootstrap
 @import "bootstrap/bootstrap.less";
 @import "tipsy.less";
+@import "typeahead.less";
 
 // Variables
 @bright-red:     #ff3000;
@@ -69,6 +70,10 @@ p {
 .more-info {
   font-size: @font-size-small;
   margin-left: 2px;
+}
+.fallback {
+  color: @gray-light;
+  font-style: italic;
 }
 
 .site-header {
@@ -538,6 +543,9 @@ body > .content {
           }
         }
       }
+      .line, {
+        stroke: #000000;
+      }
       .line.m0, .m0 .line {
         stroke: @bright-red;
       }
@@ -650,4 +658,19 @@ table.info-table {
       margin: 0;
     }
   }
+}
+
+.resource > .infobox-collection {
+  margin-left: -15px;
+  margin-right: -15px;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.infobox-collection + .row.infobox-collection > * > h3:first-child {
+  margin-top: 0;
+}
+
+.area-entry {
+  margin-bottom: 15px;
 }

@@ -1,7 +1,7 @@
 <div class="content resource">
 	<article class="resource">
 		<header>
-			<h1>Rincian Indikator Pembangunan</h1>
+			<h1>Tentang indikator</h1>
 			<h2>{{#with resource}}
 						{{#ifCollection rdfs:label}}{{preferredLabel}}
 						{{else}}
@@ -11,96 +11,174 @@
 
 		<section class="infobox-collection">
 			<div class="row">
+				<div class="col-md-2">
+					<h3>Saring data</h3>
+					<form>
+						{{#each dimensions}}
+						<div class="form-group">
+							<label for="dimension-{{@index}}" class="control-label">{{preferredLabel this}}</label>
+							<select class="form-control transporter" id="dimension-{{@index}}">
+								{{#each values}}
+								<option{{#if selected}} selected{{/if}} value="{{href}}">{{ldValue this}}</option>
+								{{/each}}
+							</select>
+						</div>
+						{{/each}}
+						{{#withc parents}}
+						<div class="form-group">
+							<label for="select-parent" class="control-label">Provinsi</label>
+							<select class="form-control transporter" id="select-parent">
+								<option value="">Semua provinsi</option>
+								{{#eachc this}}
+								<option{{#if selected}} selected{{/if}} value="{{href}}">{{preferredLabel this}}</option>
+								{{/eachc}}
+							</select>
+						</div>
+						{{/withc}}
+					</form>
+				</div>
 				<div class="col-md-4">
-					<h3>Ranking Nasional ({{selectedPeriod}})</h3>
+					<h3>Ranking</h3>
 					<div class="infobox-body leaderboard">
 						<table class="table">
 						{{#leaderboard rankings 'bm:value'}}
 							<tr>
 								<td>{{@rank}}</td>
-								<td>{{descriptionLink bm:refArea}}</td>
+								<td>{{descriptionLink bm:refArea}}{{#withc bm:refArea.bm:hasParent}}, {{preferredLabel this}}{{/withc}}</td>
 								<td>{{ldValue bm:value}}</td>
 							</tr>
 						{{/leaderboard}}
 						</table>
 					</div>
 				</div>
-				<div class="col-md-8">
+				<div class="col-md-6">
 					<h3>Peta</h3>
 					<div id="map-canvas"></div>
-{{#defer}}
-<!--[if lte IE 8]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.ie.css" /><![endif]-->
-<script src="http://cdn.leafletjs.com/leaflet-0.7/leaflet.js"></script>
-<script src="/js/heatmap.min.js"></script>
-<script src="/js/leaflet-heatmap.js"></script>
+				{{#defer}}
+				<!--[if lte IE 8]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.ie.css" /><![endif]-->
+				<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+				<script src="/js/heatmap.min.js"></script>
+				<script src="/js/leaflet-heatmap.js"></script>
 
-<script>
-var heatmapData = {{{heatmapJSON}}};
-var layer;
-$(function() {
-  var baseLayer = L.tileLayer('http://a.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-  });
+				<script>
+				var heatmapData = {{{heatmapJSON}}};
+				var layer;
+				$(function() {
+					$('head').append('<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />');
 
-  var heatmapLayer = new HeatmapOverlay({
-		radius: 50,
-		maxOpacity: 1,
-		valueField: 'value'
-	});
+					$('.transporter').change(function() {
+						location.href = this.value;
+					});
 
-	var map = L.map('map-canvas', {
-		center: [-3, 120],
-		zoom: 4,
-		layers: [baseLayer, heatmapLayer]
-	});
+				  var baseLayer = L.tileLayer('http://a.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+				  });
 
-	heatmapLayer.setData(heatmapData);
+				  var heatmapLayer = new HeatmapOverlay({
+						radius: 50,
+						maxOpacity: 1,
+						valueField: 'value'
+					});
 
-	layer = heatmapLayer;
-})
-</script>
-{{/defer}}
+					var map = L.map('map-canvas', {
+						center: [-3, 118],
+						zoom: 4,
+						layers: [baseLayer, heatmapLayer]
+					});
+
+					heatmapLayer.setData(heatmapData);
+
+					layer = heatmapLayer;
+				})
+				</script>
+				{{/defer}}
 				</div>
 			</div>
 		</section>
 
+		{{#if comparisonEnabled}}
 		<section class="infobox-collection">
-			<h3>Tentang indikator ini</h3>
-{{!-- 			<div>
-				<table class="table">
-					{{#each resource}}
-					<tr>
-						<th>{{@key}}<th>
-						<td>{{ldObject this}}</td>
-					</tr>
-					{{/each}}
-				</table>
-			</div> --}}
+			<h3>Bandingkan sejumlah wilayah</h3>
+
 			<div class="row">
 				<div class="col-md-4">
-					<h4>Perioda yang Tersedia</h4>
-					{{#each periods}}
-					<a href="?bm:refPeriod={{this}}">{{this}}</a>
-					{{/each}}
+					<div class="area-entry input-group">
+						<input class="form-control area-entry-input input-block" placeholder="Masukkan nama wilayah&hellip;" autocomplete="off">
+						<span class="input-group-btn">
+							<button type="button" class="btn btn-success"><i class="glyphicon glyphicon-eye-open"></i> Tampilkan</button>
+						</span>
+					</div>
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Nama wilayah</th>
+								<th>Sembunyikan</th>
+							</tr>
+						</thead>
+						<tbody id="view-list">
+							
+						</tbody>
+					</table>
 				</div>
-				<div class="col-md-4">
-					<h4>Kumpulan Data</h4>
-				</div>
-				<div class="col-md-4">
-					<h4>Tentang</h4>
-					{{#if rdfs:comment}}
-					{{#markdown}}{{rdfs:comment}}{{/markdown}}
-					{{else}}
-					<p class="fallback">Tidak ada keterangan mengenai indikator ini.</p>
-					{{/if}}
-					<h4>Metodologi</h4>
-					{{#if bm:methodology}}
-					{{#markdown}}{{bm:methodology}}{{/markdown}}
-					{{else}}
-					<p class="fallback">Tidak ada penjelasan mengenai metodologi indikator ini.</p>
-					{{/if}}
+				<div class="col-md-8" id="chart-container-outer">
+					
 				</div>
 			</div>
+
+			{{#defer}}
+			<script>
+			var observationsByArea = {{{observationsByAreaJSON}}};
+			var areaFullNameIndex = {{{areaFullNameIndexJSON}}};
+			var periods = {{{periodsJSON}}}
+			</script>
+			<script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.min.js"></script>
+			<script src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js"></script>
+			<script src="/js/jquery.tipsy.js"></script>
+			<script src="/js/typeahead.js"></script>
+			<script src="/js/charts.js"></script>
+			<script src="/js/indicator.js"></script>
+			{{/defer}}
 		</section>
+		{{/if}}
+
+		<div class="row infobox-collection">
+			<div class="col-md-3">
+				<h3>Tentang indikator ini</h3>
+				<h5>Keterangan</h5>
+				<p class="fallback">Tidak ada keterangan lebih lanjut mengenai indikator ini.</p>
+				<h5>Metodologi</h5>
+				<p class="fallback">Tidak ada keterangan mengenai metodologi yang digunakan indikator ini.</p>
+			</div>
+			<div class="col-md-9">
+				<h3>Kumpulan data</h3>
+				<h4>{{ldObject dataset}}</h4>
+				<div class="row">
+					<div class="col-md-4">
+						<h5>Deskripsi</h5>
+						{{#markdown}}{{trim dataset.rdfs:comment}}{{/markdown}}
+					</div>
+					<div class="col-md-4">
+						<h5>Indikator lainnya</h5>
+						<ul class="link-list">
+						{{#eachc otherMeasures}}
+							<li>{{ldObject this}}</li>
+						{{else}}
+							<li class="fallback">Tidak ada indikator lain pada kumpulan data ini.</li>
+						{{/eachc}}
+						</ul>
+					</div>
+					<div class="col-md-4">
+						<h5>Diterbitkan oleh</h5>
+						{{#withc dataset.dct:publisher}}
+						<h5>{{ldObject this}}</h5>
+						{{#markdown}}{{trim rdfs:comment}}{{/markdown}}
+						<p>{{descriptionLink this "Kumpulan data lain oleh penerbit ini &raquo;"}}</p>
+						{{else}}
+						<p class="fallback">Tidak ada keterangan mengenai penerbit kumpulan data ini.</p>
+						{{/withc}}
+					</div>
+				</div>
+			</div>
+		</div>
 	</article>
 </div>

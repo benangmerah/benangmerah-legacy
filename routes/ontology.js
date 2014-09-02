@@ -1,4 +1,5 @@
 var util = require('util');
+var querystring = require('querystring');
 var express = require('express');
 var url = require('url');
 var async = require('async');
@@ -219,29 +220,90 @@ function describeThing(req, res, next) {
 }
 
 function describeIndicator(req, res, next) {
-  var selectedPeriod = req.query['bm:refPeriod'];
   var heatmapData = { max: 1, data: [] };
-  var rankings, periods, rankingsGraph;
-  var resource;
+  var rankings, dimensions, rankingsGraph,
+      dataset, resource, otherMeasures;
+  var dimensionObjects = [];
+  var parents = [];
+  var parentName;
+
+  var params = req.query;
+  var parentId = params['bm:hasParent'];
+
+  var baseHrefObject = {};
+  _.forEach(params, function(value, key) {
+    if (!value) {
+      return;
+    }
+    baseHrefObject[key] = shared.getLdValue(value);
+  });
 
   var describePromise = api.describe(req.resourceURI).then(function(data) {
+    delete data['@context'];
     resource = data;
   });
 
-  var periodsPromise = api.periods(req.resourceURI).then(function(data) {
-    periods = data;
-    if (!_.contains(periods, selectedPeriod)) {
-      selectedPeriod = periods[0];
-    }
+  var dimensionsPromise = api.siblingDimensions(req.resourceURI)
+  .then(function(data) {
+    dimensions = data;
+
+    _.forEach(dimensions, function(dimension) {
+      var id = dimension['@id'];
+
+      dimension.values =
+        _(dimension.values).sortBy(shared.getLdValue).reverse().value();
+
+      if (id === 'bm:refPeriod') {
+        dimension['rdfs:label'] = 'Perioda';
+      }
+
+      var selectedIndex = _.findIndex(dimension.values, function(value) {
+        if (!params[id]) {
+          return false;
+        }
+
+        return shared.getLdValue(value) === shared.getLdValue(params[id]);
+      });
+      if (!params[id] || selectedIndex === -1) {
+        params[id] = dimension.values[0];
+        dimension.selectedIndex = 0;
+      }
+      else {
+        dimension.selectedIndex = selectedIndex;
+      }
+    });
+
+    _.forEach(dimensions, function(dimension) {
+      var id = dimension['@id'];
+      _.forEach(dimension.values, function(value, key) {
+        if (!_.isObject(value)) {
+          value = { '@value': value };
+          dimension.values[key] = value;
+        }
+
+        if (key === dimension.selectedIndex) {
+          value.selected = true;
+        }
+
+        var hrefObject = _.clone(baseHrefObject);
+        hrefObject[id] = shared.getLdValue(value);
+
+        value.href =
+          shared.getDescriptionPath(req.resourceURI) + '?' +
+          querystring.stringify(hrefObject, params);
+      });
+    });
   });
 
-  var rankingsPromise = periodsPromise.then(function() {
-    var conditions = {
-      'bm:refPeriod': {
-        '@value': selectedPeriod,
+  var rankingsPromise = dimensionsPromise.then(function() {
+    if (_.isString(params['bm:refPeriod'])) {
+      params['bm:refPeriod'] = {
+        '@value': params['bm:refPeriod'],
         '@type': 'xsd:gYear'
-      }
-    };
+      };
+    }
+    var conditions = _.clone(params);
+    delete conditions['bm:hasParent'];
 
     return api.rankings({
       '@id': req.resourceURI,
@@ -252,6 +314,46 @@ function describeIndicator(req, res, next) {
 
     // Generate heatmap data
     // Perhaps should be handled inside view, but handle that later
+    _.forEach(rankings, function(observation) {
+      var area = observation['bm:refArea'];
+
+      var parent = area['bm:hasParent'];
+      if (parent && !_.contains(parents, parent)) {
+        parents.push(parent);
+      }
+    });
+
+    _.forEach(parents, function(parent, key) {
+      if (!parent) {
+        delete parents[key];
+        return;
+      }
+      var hrefObject = _.clone(baseHrefObject);
+      hrefObject['bm:hasParent'] = parent['@id'];
+
+      parent.href =
+        shared.getDescriptionPath(req.resourceURI) + '?' +
+        querystring.stringify(hrefObject);
+
+      if (params['bm:hasParent'] === parent['@id']) {
+        parent.selected = true;
+      }
+    });
+
+    if (parentId) {
+      rankings = _.filter(rankings, function(observation) {
+        var area = observation['bm:refArea'];
+        if (area['bm:hasParent']) {
+          var matches = area['bm:hasParent']['@id'] === parentId;
+          if (matches && !parentName) {
+            parentName = shared.getPreferredLabel(area['bm:hasParent']);
+          }
+
+          return matches;
+        }
+      });
+    }
+
     _.forEach(rankings, function(observation) {
       var area = observation['bm:refArea'];
       var lat = area['geo:lat'];
@@ -267,18 +369,101 @@ function describeIndicator(req, res, next) {
     });
   });
 
-  Promise.all([describePromise, periodsPromise, rankingsPromise])
-  .then(function() {
-    delete resource['@context'];
+  var datasetPromise = api.indicatorDataset(req.resourceURI)
+  .then(function(data) {
+    dataset = data;
+  });
 
+  var otherMeasuresPromise = datasetPromise.then(function() {
+    var id = dataset['@id'];
+    if (id) {
+      return api.datasetMeasures(id).then(function(data) {
+        otherMeasures = _.filter(data, function(obj) {
+          return obj['@id'] !== req.resourceURI;
+        });
+      });
+    }
+  });
+
+  var comparisonEnabled = false;
+  var allObservations = [];
+  var allAreas = {};
+  var observationsByArea = {};
+  var areaFullNameIndex = {};
+  var periods = [];
+  var comparisonPromise = dimensionsPromise.then(function() {
+    if (_.findIndex(dimensions, function(d) {
+      return (d['@id'] === 'bm:refPeriod');
+    }) === -1) {
+      return;
+    }
+
+    var periodDimensionIdx = _.findIndex(dimensions, function(d) {
+      return d['@id'] === 'bm:refPeriod';
+    });
+    periods =
+      _.map(dimensions[periodDimensionIdx].values, shared.getLdValue);
+
+    comparisonEnabled = true;
+
+    var allObservationsPromise = api.rankings({
+      '@id': req.resourceURI,
+      where: '?observation bm:refPeriod ?period.'
+    }).then(function(data) {
+      allObservations = data;
+
+      _.forEach(allObservations, function(observation) {
+        var area = observation['bm:refArea'];
+        var parent = area['bm:hasParent'];
+        var areaId = area['@id'];
+        if (!allAreas[areaId]) {
+          allAreas[areaId] = area;
+        }
+
+        var areaFullName = shared.getPreferredLabel(area);
+        if (parent) {
+          areaFullName += ', ' + shared.getPreferredLabel(parent);
+        }
+        if (!areaFullNameIndex[areaFullName]) {
+          areaFullNameIndex[areaFullName] = areaId;
+        }
+
+        if (!observationsByArea[areaId]) {
+          observationsByArea[areaId] = [];
+        }
+
+        observation[areaId] = observation['bm:value'];
+
+        observationsByArea[areaId].push(observation);
+      });
+    });
+
+    return allObservationsPromise;
+  });
+
+  Promise.all([
+    describePromise, dimensionsPromise,
+    rankingsPromise, datasetPromise,
+    otherMeasuresPromise, comparisonPromise
+  ]).then(function() {
     var title = shared.getPreferredLabel(resource);
+    if (params['bm:refPeriod']) {
+      var selectedPeriod = shared.getLdValue(params['bm:refPeriod']);
+    }
 
     res.render('ontology/indicator', {
       title: title,
       resource: resource,
       rankings: rankings,
-      periods: periods,
-      selectedPeriod: selectedPeriod,
+      dimensions: dimensions,
+      dataset: dataset,
+      parents: parents,
+      parentName: parentName,
+      comparisonEnabled: comparisonEnabled,
+      observationsByAreaJSON: JSON.stringify(observationsByArea),
+      areaFullNameIndexJSON: JSON.stringify(areaFullNameIndex),
+      allAreas: JSON.stringify(allAreas),
+      periodsJSON: JSON.stringify(periods),
       heatmapJSON: JSON.stringify(heatmapData)
     });
   })

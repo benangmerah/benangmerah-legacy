@@ -269,7 +269,7 @@ helpers.eachc = function(collection, options) {
   else {
     return options.inverse(this);
   }
-}
+};
 
 helpers.ifc = helpers.ifCollection;
 
