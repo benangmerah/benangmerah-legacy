@@ -3,8 +3,12 @@ var url = require('url');
 
 var _s = require('underscore.string');
 var async = require('async');
+var bodyParser = require('body-parser');
+var config = require('config');
 var conn = require('starmutt');
 var express = require('express');
+var Promise = require('bluebird');
+var request = require('request');
 
 var shared = require('../shared');
 var api = require('../lib/api');
@@ -79,10 +83,54 @@ function search(req, res, next) {
   }).then(function(searchResults) {
     res.locals.searchQuery = searchQuery;
     res.locals.searchResults = searchResults;
-    console.log(searchResults);
     res.render('home/search');
   }).catch(next);
 }
 
+var sparqlEndpointQueue = Promise.resolve();
+var basicCredentials =
+  (new Buffer(config.stardog.username + ':' + config.stardog.password))
+  .toString('base64');
+
+function sparql(req, res, next) {
+  var backEndpoint =
+    config.stardog.endpoint + config.stardog.database + '/query';
+
+  var options = {
+    uri: backEndpoint,
+    headers: {
+      Authorization: 'Basic ' + basicCredentials,
+      Accept: req.header('Accept') || '*/*',
+      'Content-Type': req.header('Content-Type')
+    }
+  };
+
+  if (req.method === 'GET') {
+    options.qs = {
+      'query': req.query.query
+    };
+  }
+  else if (req.method === 'POST') {
+    options.method = 'POST';
+    options.body = req.body;
+  }
+
+  sparqlEndpointQueue = sparqlEndpointQueue.then(function() {
+    return new Promise(function(resolve, reject) {
+      res.on('close', resolve);
+      res.on('finish', resolve);
+      var tunnel = request(options);
+      tunnel.pipe(res);
+    });
+  }).catch(function(err) {
+    res.status(500);
+    console.error(err);
+  });
+}
+
 router.all('/', index);
 router.all('/search', search);
+router.all('/sparql',
+  bodyParser.raw({ type: 'urlencoded' }),
+  bodyParser.raw({ type: 'application/sparql-query' }),
+  sparql);

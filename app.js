@@ -93,7 +93,6 @@ app.use('/css', lessMiddleware(
     compiler: { compress: ('development' !== app.get('env')) } }
 ));
 app.use(serveStatic(__dirname + '/public'));
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(methodOverride());
 
 // Data Manager - do not cache

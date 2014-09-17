@@ -3,6 +3,7 @@ var stream = require('stream');
 var util = require('util');
 
 var async = require('async');
+var bodyParser = require('body-parser');
 var config = require('config');
 var conn = require('starmutt');
 var express = require('express');
@@ -190,6 +191,7 @@ function submitFetchAllInstancesOfDriver(req, res, next) {
 }
 
 // TODO: use authentication
+router.use(bodyParser.urlencoded({ extended: true }));
 router.use(init);
 router.use(requireAuthentication);
 router.get('/', index);
